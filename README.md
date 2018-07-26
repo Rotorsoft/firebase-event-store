@@ -9,7 +9,8 @@ A basic event sourcing library using firestore to record aggregates, events, and
 
 ## Usage
 
-`const {
+```
+const {
   Aggregate,
   Command,
   Evento,
@@ -17,10 +18,6 @@ A basic event sourcing library using firestore to record aggregates, events, and
   Bus,
   ERRORS
 } = require('../index')
-const chai = require('chai')
-const chaiasp = require('chai-as-promised')
-chai.use(chaiasp)
-chai.should()
 
 class AddNumbers extends Command {
   validate() {
@@ -72,7 +69,8 @@ bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }),
     .catch(error => {
       console.error(error)
     })
-  })`
+  })
+```  
 
 ## Tests
 
