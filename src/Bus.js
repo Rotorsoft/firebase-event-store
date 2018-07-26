@@ -14,11 +14,24 @@ module.exports = class Bus {
     this._handlers_ = []
   }
 
+  /**
+   * Registers event handler with bus
+   * @param {Object} handler Event handler
+   */
   addEventHandler (handler) {
     if (!(handler instanceof IEventHandler)) throw ERRORS.INVALID_ARGUMENTS_ERROR('handler')
     this._handlers_.push(handler)
   }
 
+  /**
+   * Sends command to bus, persisting events and latest version of aggregate in store
+   * @param {Command} command Command subclass
+   * @param {String} tenantPath Path to tenant document
+   * @param {String} storePath Path to aggregate collection
+   * @param {Aggregate} aggregateType Aggregate subclass
+   * @param {String} aggregateId Optional aggregate id (will create one if not provided)
+   * @param {Number} expectedVersion Expected aggregate version or -1 when creating first event
+   */
   sendCommand (command, tenantPath, storePath, aggregateType, aggregateId = null, expectedVersion = -1) {
     let aggregatePath = tenantPath.concat(storePath)
     return this._store_.loadAggregate(aggregatePath, aggregateType, aggregateId)

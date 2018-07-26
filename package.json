@@ -1,7 +1,7 @@
 {
   "name": "firebase-event-store",
-  "version": "0.1.0",
-  "description": "Simple event store on firestore",
+  "version": "0.1.1",
+  "description": "Simple multi-tenant event sourcing store based on firestore",
   "main": "index.js",
   "scripts": {
     "test": "mocha --reporter spec"
