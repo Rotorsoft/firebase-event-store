@@ -1,7 +1,7 @@
 'use strict'
 
 const IDocumentStore = require('./IDocumentStore')
-const ERRORS = require('./ERRORS')
+const ERRORS = require('./errors')
 
 /**
  * Basic firestore implementation of IDocumentStore
