@@ -9,7 +9,7 @@ A basic event sourcing library using firestore to record aggregates, events, and
 
 ## Usage
 
-```
+```javascript
 const {
   Aggregate,
   Command,
