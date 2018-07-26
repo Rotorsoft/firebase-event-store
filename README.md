@@ -1,7 +1,7 @@
 firebase-event-store
 =========
 
-A basic event sourcing library using firestore to record aggregates, events, and documents (read model)
+A basic multi-tenant event sourcing library using firestore to record aggregates, events, and documents (read model)
 
 ## Installation
 
