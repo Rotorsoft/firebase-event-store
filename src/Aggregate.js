@@ -1,5 +1,6 @@
 'use strict'
 
+const Evento = require('./Evento')
 const ERRORS = require('./errors')
 
 /**
@@ -14,10 +15,10 @@ module.exports = class Aggregate {
    */
   static create (aggregateType, aggregateId = '') {
     if (!(aggregateType.prototype instanceof Aggregate)) throw ERRORS.INVALID_ARGUMENTS_ERROR('aggregateType')
-    let aggregate = Object.create(aggregateType.prototype)
-    aggregate._aggregate_id_ = aggregateId
-    aggregate._aggregate_version_ = -1
-    Object.defineProperty(aggregate, '_uncommitted_events_', { writable: true, value: [] })
+    let aggregate = new aggregateType.prototype.constructor()
+    Object.defineProperty(aggregate, '_aggregate_id_', { value: aggregateId, writable: !aggregateId, enumerable: true }) 
+    Object.defineProperty(aggregate, '_aggregate_version_', { value: -1, writable: true, enumerable: true })
+    Object.defineProperty(aggregate, '_uncommitted_events_', { value: [], writable: true, enumerable: false })
     return aggregate
   }
 
@@ -33,7 +34,20 @@ module.exports = class Aggregate {
     this._aggregate_version_++
   }
 
-  addEvent (event) {
+  /**
+   * Event factory method
+   * @param {Object} eventType subclass of Evento
+   * @param {String} uid user id creating event
+   * @param {Object} payload event payload
+   */
+  addEvent (eventType, uid, payload) {
+    if (!(eventType.prototype instanceof Evento)) throw ERRORS.INVALID_ARGUMENTS_ERROR('eventType')
+    let event = new eventType.prototype.constructor()
+    Object.defineProperty(event, '_event_name_', { value: eventType.name, enumerable: true, writable: false })
+    Object.defineProperty(event, '_event_creator_', { value: uid, enumerable: true, writable: false })
+    Object.entries(payload).forEach(p => {
+      Object.defineProperty(event, p[0], { value: p[1], enumerable: true, writable: false })
+    })
     // console.log(`Adding event ${JSON.stringify(event)}`)
     this.applyEvent(event)
     this._uncommitted_events_.push(event)

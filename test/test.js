@@ -22,21 +22,21 @@ class AddNumbers extends Command {
   }
 }
 
-class NumbersAdded extends Evento {
-  constructor (uid, number1, number2) {
-    super(uid)
-    this.number1 = number1
-    this.number2 = number2
-  }
-}
+class NumbersAdded extends Evento { }
 
 class Calculator extends Aggregate {
+  constructor () {
+    super()
+    console.log('calling constructor')
+    this.sum = 0
+  }
+
   handleCommand (command) {
     let _ = command.payload
     switch (command.constructor) {
       case AddNumbers:
         console.log(`handling command AddNumbers: ${_.number1} + ${_.number2}`)
-        this.addEvent(new NumbersAdded(command.uid, _.number1, _.number2))
+        this.addEvent(NumbersAdded, command.uid, _)
         break
     }
   }
@@ -45,7 +45,6 @@ class Calculator extends Aggregate {
     switch (e.eventName) {
       case NumbersAdded.name:
         console.log(`applying event NumbersAdded: ${e.number1} + ${e.number2}`)
-        this.sum = (this.sum || 0)
         this.sum += (e.number1 + e.number2)
         break
     }

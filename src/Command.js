@@ -14,9 +14,9 @@ module.exports = class Command {
    */
   static create (commandType, uid, payload) {
     if (!(commandType.prototype instanceof Command)) throw ERRORS.INVALID_ARGUMENTS_ERROR('commandType')
-    let command = Object.create(commandType.prototype)
-    Object.defineProperty(command, '_uid_', { value: uid, enumerable: true })
-    Object.defineProperty(command, '_', { value: payload, enumerable: true })
+    let command = new commandType.prototype.constructor()
+    Object.defineProperty(command, '_uid_', { value: uid, enumerable: true, writable: false })
+    Object.defineProperty(command, '_', { value: payload, enumerable: true, writable: false })
     command.validate()
     return command
   }
