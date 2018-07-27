@@ -22,27 +22,27 @@ const {
 class AddNumbers extends Command {
   validate() {
     let _ = this.payload
-    console.log(``validating payload: ${JSON.stringify(_)}``)
+    console.log(`validating payload: ${JSON.stringify(_)}`)
     if (!_.number1) throw ERRORS.INVALID_ARGUMENTS_ERROR('number1')
     if (!_.number2) throw ERRORS.INVALID_ARGUMENTS_ERROR('number2')
   }
 }
 
-class NumbersAdded extends Evento {
-  constructor (uid, number1, number2) {
-    super(uid)
-    this.number1 = number1
-    this.number2 = number2
-  }
-}
+class NumbersAdded extends Evento { }
 
 class Calculator extends Aggregate {
+  constructor () {
+    super()
+    console.log('calling constructor')
+    this.sum = 0
+  }
+
   handleCommand (command) {
     let _ = command.payload
     switch (command.constructor) {
       case AddNumbers:
-        console.log(``handling command AddNumbers: ${_.number1} + ${_.number2}``)
-        this.addEvent(new NumbersAdded(command.uid, _.number1, _.number2))
+        console.log(`handling command AddNumbers: ${_.number1} + ${_.number2}`)
+        this.addEvent(NumbersAdded, command.uid, _)
         break
     }
   }
@@ -50,8 +50,7 @@ class Calculator extends Aggregate {
   applyEvent (e) {
     switch (e.eventName) {
       case NumbersAdded.name:
-        console.log(``applying event NumbersAdded: ${e.number1} + ${e.number2}``)
-        this.sum = (this.sum || 0)
+        console.log(`applying event NumbersAdded: ${e.number1} + ${e.number2}`)
         this.sum += (e.number1 + e.number2)
         break
     }
@@ -70,7 +69,7 @@ bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }),
       console.error(error)
     })
   })
-```  
+```
 
 ## Tests
 
