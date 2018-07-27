@@ -16,13 +16,18 @@ module.exports = class Command {
     if (!(commandType.prototype instanceof Command)) throw ERRORS.INVALID_ARGUMENTS_ERROR('commandType')
     let command = new commandType.prototype.constructor()
     Object.defineProperty(command, '_uid_', { value: uid, enumerable: true, writable: false })
-    Object.defineProperty(command, '_', { value: payload, enumerable: true, writable: false })
-    command.validate()
+    command.validate(payload)
     return command
   }
 
+  /**
+   * Gets user who created this command
+   */
   get uid() { return this._uid_ }
-  get payload() { return this._ }
 
-  validate() { throw ERRORS.NOT_IMPLEMENTED_ERROR() }
+  /**
+   * Validates command payload and copies any attributes needed later to create events
+   * @param {Object} _ command payload
+   */
+  validate(_) { throw ERRORS.NOT_IMPLEMENTED_ERROR() }
 }

@@ -39,7 +39,9 @@ module.exports = class Bus {
         // console.log(JSON.stringify(aggregate))
         aggregate.handleCommand(command)
         return this._store_.commitAggregate(aggregatePath, aggregate, expectedVersion)
-          .catch(error => { throw ERRORS.CONCURRENCY_ERROR() })
+          .catch(error => { 
+            throw ERRORS.CONCURRENCY_ERROR() 
+          })
       })
       .then(aggregate => {
         // handle uncommited events
