@@ -14,17 +14,23 @@ const {
   Aggregate,
   Command,
   Evento,
+  InMemoryDocumentStore,
   InMemoryEventStore,
   Bus,
   ERRORS
 } = require('../index')
 
+const docStore = new InMemoryDocumentStore()
+const evtStore = new InMemoryEventStore()
+const bus = new Bus(evtStore)
+bus.addEventHandler(new EventCounter(docStore))
+
 class AddNumbers extends Command {
-  validate() {
-    let _ = this.payload
-    console.log(`validating payload: ${JSON.stringify(_)}`)
+  validate(_) {
     if (!_.number1) throw ERRORS.INVALID_ARGUMENTS_ERROR('number1')
     if (!_.number2) throw ERRORS.INVALID_ARGUMENTS_ERROR('number2')
+    this.number1 = _.number1
+    this.number2 = _.number2
   }
 }
 
@@ -33,16 +39,13 @@ class NumbersAdded extends Evento { }
 class Calculator extends Aggregate {
   constructor () {
     super()
-    console.log('calling constructor')
     this.sum = 0
   }
 
   handleCommand (command) {
-    let _ = command.payload
     switch (command.constructor) {
       case AddNumbers:
-        console.log(`handling command AddNumbers: ${_.number1} + ${_.number2}`)
-        this.addEvent(NumbersAdded, command.uid, _)
+        this.addEvent(NumbersAdded, command.uid, { a: command.number1, b: command.number2 })
         break
     }
   }
@@ -50,15 +53,29 @@ class Calculator extends Aggregate {
   applyEvent (e) {
     switch (e.eventName) {
       case NumbersAdded.name:
-        console.log(`applying event NumbersAdded: ${e.number1} + ${e.number2}`)
-        this.sum += (e.number1 + e.number2)
+        this.sum += (e.a + e.b)
         break
     }
   }
 }
 
-const evtStore = new InMemoryEventStore()
-const bus = new Bus(evtStore)
+class EventCounter extends IEventHandler {
+  constructor(docStore) {
+    super()
+    this.docStore = docStore
+  }
+
+  applyEvent (tenantPath, event, aggregate) {
+    const path = '/counters/counter1'
+    if (event.eventName === NumbersAdded.name) {
+      this.docStore.set(path, {})
+        .then(doc => {
+          doc.eventCount = (doc.eventCount || 0) + 1
+          return this.docStore.set(path, doc)
+        })
+    }
+  }
+}
 
 bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
   .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
