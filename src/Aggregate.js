@@ -45,8 +45,8 @@ module.exports = class Aggregate {
     let event = new eventType.prototype.constructor()
     Object.defineProperty(event, '_event_name_', { value: eventType.name, enumerable: true, writable: false })
     Object.defineProperty(event, '_event_creator_', { value: uid, enumerable: true, writable: false })
-    Object.entries(payload).forEach(p => {
-      Object.defineProperty(event, p[0], { value: p[1], enumerable: true, writable: false })
+    Object.keys(payload).forEach(p => {
+      Object.defineProperty(event, p, { value: payload[p], enumerable: true, writable: false })
     })
     // console.log(`Adding event ${JSON.stringify(event)}`)
     this.applyEvent(event)
