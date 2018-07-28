@@ -16,11 +16,12 @@ module.exports = class FirestoreEventStore extends IEventStore {
 
   // tenants/tenantid/aggregates/aggregateId/events/{version}/event
   loadAggregate (aggregatePath, aggregateType, aggregateId = null) {
-    if (!(aggregateType.prototype instanceof Aggregate)) throw ERRORS.INVALID_ARGUMENTS_ERROR('aggregateType')
+    if (!(aggregateType.prototype instanceof Aggregate))
+      return Promise.reject(ERRORS.INVALID_ARGUMENTS_ERROR('aggregateType'))
 
-    if (!aggregateId) {
-      return Aggregate.create(aggregateType)
-    } else {
+    if (!aggregateId)
+      return Promise.resolve(Aggregate.create(aggregateType))
+    else {
       let aggregate = Aggregate.create(aggregateType, aggregateId)
       let aggRef = this._db_.doc(aggregatePath.concat('/', aggregateId))
       return aggRef.collection('events').get()
@@ -64,6 +65,9 @@ module.exports = class FirestoreEventStore extends IEventStore {
         // console.log(results)
         aggregate._aggregate_version_ = expectedVersion
         return aggregate
+      })
+      .catch(() => {
+        throw ERRORS.CONCURRENCY_ERROR() 
       })
   }
 }

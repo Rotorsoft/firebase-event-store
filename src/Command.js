@@ -29,5 +29,5 @@ module.exports = class Command {
    * Validates command payload and copies any attributes needed later to create events
    * @param {Object} _ command payload
    */
-  validate(_) { throw ERRORS.NOT_IMPLEMENTED_ERROR() }
+  validate(_) { throw ERRORS.NOT_IMPLEMENTED_ERROR('validate') }
 }

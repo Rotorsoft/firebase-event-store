@@ -10,25 +10,25 @@ module.exports = class IDocumentStore {
    * Gets document from store
    * @param {String} path Path to document 
    */
-  get (path) { throw ERRORS.NOT_IMPLEMENTED_ERROR() }
+  get (path) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('get')) }
 
   /**
    * Sets document (create or update)
    * @param {String} path Path to document 
    * @param {Object} doc Document
    */
-  set (path, doc) { throw ERRORS.NOT_IMPLEMENTED_ERROR() }
+  set (path, doc) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('set')) }
 
   /**
    * Deletes document
    * @param {String} path Path to document
    */
-  delete (path) { throw ERRORS.NOT_IMPLEMENTED_ERROR() }
+  delete (path) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('delete')) }
   
   /**
    * Queries document collection
    * @param {String} path Path to collection
    * @param {Object} where Where clause 
    */
-  query (path, where) { throw ERRORS.NOT_IMPLEMENTED_ERROR() }
+  query (path, where) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('query')) }
 }

@@ -25,8 +25,8 @@ module.exports = class Aggregate {
   get aggregateId() { return this._aggregate_id_ }
   get aggregateVersion() { return this._aggregate_version_ }
 
-  handleCommand (command) { throw ERRORS.NOT_IMPLEMENTED_ERROR() }
-  applyEvent (event) { throw ERRORS.NOT_IMPLEMENTED_ERROR() }
+  handleCommand (command) { throw ERRORS.NOT_IMPLEMENTED_ERROR('handleCommand') }
+  applyEvent (event) { throw ERRORS.NOT_IMPLEMENTED_ERROR('applyEvent') }
 
   loadEvent (event) {
     // console.log(`Loading event ${JSON.stringify(event)}`)
