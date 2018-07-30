@@ -4,8 +4,8 @@
   "description": "Simple multi-tenant event sourcing store based on firestore",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --reporter spec",
-    "cover": "istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec"
+    "test": "mocha --reporter spec --timeout 10000 || exit 0",
+    "cover": "istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec --timeout 10000"
   },
   "repository": {
     "type": "git",

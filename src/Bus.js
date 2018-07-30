@@ -34,13 +34,16 @@ module.exports = class Bus {
    */
   sendCommand (command, tenantPath, storePath, aggregateType, aggregateId = null, expectedVersion = -1) {
     let aggregatePath = tenantPath.concat(storePath)
+    let _aggregate
     return this._store_.loadAggregate(aggregatePath, aggregateType, aggregateId)
       .then(aggregate => {
-        // console.log(JSON.stringify(aggregate))
+        // console.log('after load', JSON.stringify(aggregate))
         aggregate.handleCommand(command)
         return this._store_.commitAggregate(aggregatePath, aggregate, expectedVersion)
       })
       .then(aggregate => {
+        // console.log('after commit', JSON.stringify(aggregate))
+        _aggregate = aggregate
         // handle uncommited events
         let promises = []
         this._handlers_.forEach(h => {
@@ -48,11 +51,11 @@ module.exports = class Bus {
             promises.push(h.applyEvent(tenantPath, e, aggregate))
           })
         })
-        return Promise.all(promises).then(() => {
-          aggregate._uncommitted_events_ = []
-          // console.log(JSON.stringify(aggregate))
-          return aggregate
-        })
+        return Promise.all(promises)
+      })
+      .then(() => {
+        _aggregate._uncommitted_events_ = []
+        return _aggregate
       })
   }
 }

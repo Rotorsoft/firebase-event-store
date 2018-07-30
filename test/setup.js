@@ -28,37 +28,38 @@ mocksdk.initializeApp()
 mockfirestore.autoFlush()
 
 const doccreate = function (data, callback) {
-  var err = this._nextErr('create');
+  var err = this._nextErr('create')
   if (this.data) 
-    err = new Error('document already exists')
+    err = 'document already exists'
   else 
     data = _.cloneDeep(data);
-  var self = this;
+  var self = this
   return new Promise(function (resolve, reject) {
     self._defer('create', _.toArray(arguments), function () {
       if (err === null) {
         self._dataChanged(data);
-        resolve(data);
+        resolve(data)
       } else {
         if (callback) {
-          callback(err);
+          callback(err)
         }
-        reject(err);
+        reject(err)
       }
-    });
-  });
-};
+    })
+  })
+}
 
 firebasemock.MockFirestore.prototype.batch = function () {
   var self = this;
   let promises = []
   return {
     create: function(doc, data) {
-      Object.getPrototypeOf(doc).create = doccreate
+      let proto = Object.getPrototypeOf(doc)
+      if (!proto.create) proto.create = doccreate
       promises.push(doc.create(data))
-    }, 
+    },
     set: function(doc, data, opts) {
-      var _opts = _.assign({}, { merge: false }, opts);
+      var _opts = _.assign({}, { merge: false }, opts)
       if (_opts.merge) {
         promises.push(doc._update(data, { setMerge: true }))
       }
@@ -74,16 +75,13 @@ firebasemock.MockFirestore.prototype.batch = function () {
     },
     commit: function() {
       if (self.queue.events.length > 0) {
-        self.flush();
+        self.flush()
       }
       // execute sequentially
-      return Promise.all(promises)
-      // return promises.reduce((chain, task) => { 
-      //   return chain.then(results => task.then(result => [...results, result]))
-      // }, Promise.resolve([]))
+      return promises.reduce((chain, promise) => chain.then(results => promise.then(result => [...results, result])), Promise.resolve([]))
     }
-  };
-};
+  }
+}
 
 chai.use(chaiasp)
 chai.should()

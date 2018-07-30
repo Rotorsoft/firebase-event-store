@@ -8,8 +8,8 @@ const {
 
 class AddNumbers extends Command {
   validate(_) {
-    if (!_.number1) throw ERRORS.INVALID_ARGUMENTS_ERROR('number1')
-    if (!_.number2) throw ERRORS.INVALID_ARGUMENTS_ERROR('number2')
+    if (!Number.isInteger(_.number1)) throw ERRORS.INVALID_ARGUMENTS_ERROR('number1')
+    if (!Number.isInteger(_.number2)) throw ERRORS.INVALID_ARGUMENTS_ERROR('number2')
     this.number1 = _.number1
     this.number2 = _.number2
   }

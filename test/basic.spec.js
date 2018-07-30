@@ -7,6 +7,8 @@ const { Calculator, AddNumbers, EventCounter } = require('./model')
 let docStore
 let bus
 
+process.on('unhandledRejection', error => { console.log('unhandledRejection', error) })
+
 describe('In Memory', () => {
   before (() => {
     ({ docStore, bus } = setup(true))
@@ -77,7 +79,7 @@ describe('In Memory', () => {
     let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
       .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
       .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, 0))
-       
+
     promise.should.be.rejectedWith('concurrency error').notify(done)
   })
 })
@@ -164,5 +166,29 @@ describe('Firebase Mock', () => {
     let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', AddNumbers)
 
     promise.should.be.rejectedWith('invalid arguments: aggregateType').notify(done)
+  })
+})
+
+describe('Many commands', () => {
+  it('should accumulate numbers to 1004', (done) => {
+    const iters = 1004
+    const bus3 = setup(false).bus
+    const cmd = Command.create(AddNumbers, 'user1', { number1: 0, number2: 1 })
+    bus3.sendCommand(cmd, '/tenants/tenant1', '/calculators', Calculator, 'calc2')
+      .then(calc => {
+        let wrappers = []
+        for (let i = 0; i < iters; i++) {
+          wrappers.push(() => bus3.sendCommand(cmd, '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, i))
+        }
+        return wrappers.reduce((chain, wrapper) => chain.then(wrapper), Promise.resolve())
+      })
+      .then(calc => {
+        calc.aggregateVersion.should.equal(iters)
+        calc.sum.should.equal(iters + 1)
+        done()
+      })
+      .catch(error => {
+        done(error)
+      })
   })
 })
