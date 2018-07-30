@@ -1,6 +1,6 @@
 {
   "name": "firebase-event-store",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Simple multi-tenant event sourcing store based on firestore",
   "main": "index.js",
   "scripts": {
