@@ -145,6 +145,21 @@ describe('Firebase Mock', () => {
       })
   })
 
+  it('should query all docs', (done) => {
+    docStore.set('/docs/doc1', { a: 1, b: 2 })
+      .then(() => docStore.set('/docs/doc2', { a: 2, b: 2 }))
+      .then(() => docStore.query('/docs'))
+      .then(docs => {
+        docs.length.should.equal(2)
+        docs[0].a.should.equal(1)
+        docs[1].b.should.equal(2)
+        done()
+      })
+      .catch(error => {
+        done(error)
+      })
+  })
+
   it('should save and delete doc', (done) => {
     const path = '/docs/doc2'
     let promise = docStore.set(path, { a: 1, b: 2 })

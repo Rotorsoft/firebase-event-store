@@ -29,8 +29,14 @@ module.exports = class FirestoreDocumentStore extends IDocumentStore {
     return this._db_.doc(path).delete()
   }
 
-  query (path, where) {
-    return this._db_.collection(path).where(where.fieldPath, where.opStr, where.value).get()
-      .then(snapshot => snapshot.docs.map(d => d.data()))
+  query (path, where = null) {
+    if (where) {
+      return this._db_.collection(path).where(where.fieldPath, where.opStr, where.value).get()
+        .then(snapshot => snapshot.docs.map(d => d.data()))
+    }
+    else {
+      return this._db_.collection(path).get()
+        .then(snapshot => snapshot.docs.map(d => d.data()))
+    }
   }
 }

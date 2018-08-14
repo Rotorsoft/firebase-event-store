@@ -28,7 +28,7 @@ module.exports = class IDocumentStore {
   /**
    * Queries document collection
    * @param {String} path Path to collection
-   * @param {Object} where Where clause 
+   * @param {Object} where Optional where clause 
    */
-  query (path, where) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('query')) }
+  query (path, where = null) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('query')) }
 }
