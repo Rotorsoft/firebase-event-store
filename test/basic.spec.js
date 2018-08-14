@@ -153,6 +153,8 @@ describe('Firebase Mock', () => {
         docs.length.should.equal(2)
         docs[0].a.should.equal(1)
         docs[1].b.should.equal(2)
+        docs[0]._id_.should.equal('doc1')
+        docs[1]._id_.should.equal('doc2')
         done()
       })
       .catch(error => {

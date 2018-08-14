@@ -35,10 +35,4 @@ module.exports = class InMemoryDocumentStore extends IDocumentStore {
       resolve()
     })
   }
-
-  query (path) {
-    return new Promise(resolve => {
-      resolve(Object.keys(this._store_).map(k => this._store_[k]))
-    })
-  }
 }

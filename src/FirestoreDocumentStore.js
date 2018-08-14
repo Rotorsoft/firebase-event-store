@@ -32,11 +32,19 @@ module.exports = class FirestoreDocumentStore extends IDocumentStore {
   query (path, where = null) {
     if (where) {
       return this._db_.collection(path).where(where.fieldPath, where.opStr, where.value).get()
-        .then(snapshot => snapshot.docs.map(d => d.data()))
+        .then(snapshot => snapshot.docs.map(d => { 
+          let doc = d.data()
+          doc._id_ = d.id
+          return doc
+        }))
     }
     else {
       return this._db_.collection(path).get()
-        .then(snapshot => snapshot.docs.map(d => d.data()))
+        .then(snapshot => snapshot.docs.map(d => {
+          let doc = d.data()
+          doc._id_ = d.id
+          return doc
+        }))
     }
   }
 }
