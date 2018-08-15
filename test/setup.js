@@ -87,17 +87,17 @@ chai.use(chaiasp)
 chai.should()
 
 module.exports = {
-  setup: function (inMemory) {
+  setup: function (inMemory, busName) {
     let docStore, evtStore, bus
     if (inMemory) {
       docStore = new InMemoryDocumentStore()
       evtStore = new InMemoryEventStore()
-      bus = new Bus(evtStore)
+      bus = new Bus(evtStore, busName)
     } else {
       const db = mocksdk.firestore()
       docStore = new FirestoreDocumentStore(db)
       evtStore = new FirestoreEventStore(db)
-      bus = new Bus(evtStore)
+      bus = new Bus(evtStore, busName)
     }
     return { 
       docStore: docStore,

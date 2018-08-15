@@ -222,15 +222,16 @@ describe('Firebase Mock', () => {
 describe('Many commands', () => {
   it('should accumulate numbers to 1004', (done) => {
     const iters = 1004
-    const bus3 = setup(false).bus
-    const cmd = Command.create(AddNumbers, 'user1', { number1: 0, number2: 1 })
+    const bus3 = setup(false, 'many').bus
+    let cmd = Command.create(AddNumbers, 'user1', { number1: 0, number2: 1 })
     bus3.sendCommand(cmd, '/tenants/tenant1', '/calculators', Calculator, 'calc2')
       .then(calc => {
-        let wrappers = []
+        let commands = []
         for (let i = 0; i < iters; i++) {
-          wrappers.push(() => bus3.sendCommand(cmd, '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, i))
+          cmd = Command.create(AddNumbers, 'user1', { number1: 0, number2: 1 })
+          commands.push(cmd)
         }
-        return wrappers.reduce((chain, wrapper) => chain.then(wrapper), Promise.resolve())
+        return bus3.sendCommands(commands, '/tenants/tenant1', '/calculators', Calculator, 'calc2', 0)
       })
       .then(calc => {
         calc.aggregateVersion.should.equal(iters)

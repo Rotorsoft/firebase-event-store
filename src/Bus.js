@@ -8,10 +8,11 @@ const ERRORS = require('./errors')
  * Event bus - TODO: make it more reliable
  */
 module.exports = class Bus {
-  constructor (store) {
+  constructor (store, name) {
     if (!(store instanceof IEventStore)) throw ERRORS.INVALID_ARGUMENTS_ERROR('store')
     this._store_ = store
     this._handlers_ = []
+    this._name_ = name
   }
 
   /**
@@ -37,12 +38,12 @@ module.exports = class Bus {
     let _aggregate
     return this._store_.loadAggregate(aggregatePath, aggregateType, aggregateId)
       .then(aggregate => {
-        // console.log('after load', JSON.stringify(aggregate))
+        // if (this._name_) console.log(`${this._name_}: after load with expected version = ${expectedVersion} - `, JSON.stringify(aggregate))
         aggregate.handleCommand(command)
         return this._store_.commitAggregate(aggregatePath, aggregate, expectedVersion)
       })
       .then(aggregate => {
-        // console.log('after commit', JSON.stringify(aggregate))
+        // if (this._name_) console.log(`${this._name_}: after commit - `, JSON.stringify(aggregate))
         _aggregate = aggregate
         // handle uncommited events
         let promises = []
@@ -57,5 +58,23 @@ module.exports = class Bus {
         _aggregate._uncommitted_events_ = []
         return _aggregate
       })
+  }
+
+  /**
+   * Sends commands sequentially to bus, persisting events and latest version of aggregate in store
+   * @param {Command[]} commands Array of Command subclass
+   * @param {String} tenantPath Path to tenant document
+   * @param {String} storePath Path to aggregate collection
+   * @param {Aggregate} aggregateType Aggregate subclass
+   * @param {String} aggregateId Aggregate id
+   * @param {Number} expectedVersion Expected aggregate version
+   * @returns {Aggregate} Last version of aggregate
+   */
+  sendCommands (commands, tenantPath, storePath, aggregateType, aggregateId, expectedVersion) {
+    let wrappers = []
+    for (let i = 0; i < commands.length; i++) {
+      wrappers.push(() => this.sendCommand(commands[i], tenantPath, storePath, aggregateType, aggregateId, expectedVersion + i))
+    }
+    return wrappers.reduce((chain, wrapper, index) => chain.then(wrapper), Promise.resolve())
   }
 }
