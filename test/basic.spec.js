@@ -66,6 +66,39 @@ describe('In Memory', () => {
       })
   })
 
+  it('should merge doc', (done) => {
+    const path = '/docs/doc1'
+    docStore.set(path, { a: 1, b: 2 })
+      .then(doc => {
+        return docStore.set(path, { c: 3 }, true)
+      })
+      .then(doc2 => {
+        doc2.a.should.equal(1)
+        doc2.b.should.equal(2)
+        doc2.c.should.equal(3)
+        done()
+      })
+      .catch(error => {
+        done(error)
+      })
+  })
+
+  it('should not merge doc', (done) => {
+    const path = '/docs/doc1'
+    docStore.set(path, { a: 1, b: 2 })
+      .then(doc => {
+        return docStore.set(path, { c: 3 }, false)
+      })
+      .then(doc2 => {
+        Object.keys(doc2).length.should.equal(1)
+        doc2.c.should.equal(3)
+        done()
+      })
+      .catch(error => {
+        done(error)
+      })
+  })
+
   it('should save and delete doc', (done) => {
     const path = '/docs/doc2'
     let promise = docStore.set(path, { a: 1, b: 2 })

@@ -20,10 +20,12 @@ module.exports = class InMemoryDocumentStore extends IDocumentStore {
     })
   }
 
-  set (path, doc) {
+  set (path, doc, merge = true) {
     return new Promise(resolve => {
-      let stored = this._store_[path] || {}
-      doc = Object.assign(stored, doc)
+      if (merge) {
+        let stored = this._store_[path] || {}
+        doc = Object.assign(stored, doc)
+      }
       this._store_[path] = doc
       resolve(doc)
     })

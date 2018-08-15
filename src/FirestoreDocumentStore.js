@@ -20,8 +20,8 @@ module.exports = class FirestoreDocumentStore extends IDocumentStore {
       })
   }
 
-  set (path, doc) {
-    return this._db_.doc(path).set(doc, { merge: true })
+  set (path, doc, merge = true) {
+    return this._db_.doc(path).set(doc, { merge: merge })
       .then(() => this.get(path))
   }
 

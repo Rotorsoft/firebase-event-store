@@ -16,8 +16,9 @@ module.exports = class IDocumentStore {
    * Sets document (create or update)
    * @param {String} path Path to document 
    * @param {Object} doc Document
+   * @param {Boolean} merge Merge attributes (true by default)
    */
-  set (path, doc) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('set')) }
+  set (path, doc, merge = true) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('set')) }
 
   /**
    * Deletes document
