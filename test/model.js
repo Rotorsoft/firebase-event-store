@@ -31,11 +31,11 @@ class Calculator extends Aggregate {
     }
   }
 
-  applyEvent (e) {
-    switch (e.eventName) {
-      case NumbersAdded.name:
-        this.creator = e.eventCreator
-        this.sum += (e.a + e.b)
+  applyEvent (event) {
+    switch (event.constructor) {
+      case NumbersAdded:
+        this.creator = event.eventCreator
+        this.sum += (event.a + event.b)
         break
     }
   }

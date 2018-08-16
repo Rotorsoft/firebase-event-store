@@ -1,7 +1,5 @@
 const _ = require('lodash')
 const {
-  InMemoryEventStore,
-  InMemoryDocumentStore,
   FirestoreEventStore,
   FirestoreDocumentStore,
   Bus,
@@ -87,21 +85,17 @@ chai.use(chaiasp)
 chai.should()
 
 module.exports = {
-  setup: function (inMemory, busName) {
+  setup: function (busName) {
     let docStore, evtStore, bus
-    if (inMemory) {
-      docStore = new InMemoryDocumentStore()
-      evtStore = new InMemoryEventStore()
-      bus = new Bus(evtStore, busName)
-    } else {
-      const db = mocksdk.firestore()
-      docStore = new FirestoreDocumentStore(db)
-      evtStore = new FirestoreEventStore(db)
-      bus = new Bus(evtStore, busName)
-    }
+    const db = mocksdk.firestore()
+    docStore = new FirestoreDocumentStore(db)
+    evtStore = new FirestoreEventStore(db)
+    bus = new Bus(evtStore, busName)
     return { 
+      evtStore: evtStore,
       docStore: docStore,
-      bus: bus
+      bus: bus,
+      firestore: db
     }
   }
 }

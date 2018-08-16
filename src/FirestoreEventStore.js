@@ -2,7 +2,6 @@
 
 const IEventStore = require('./IEventStore')
 const Aggregate = require('./Aggregate')
-const Evento = require('./Evento')
 const ERRORS = require('./errors')
 
 /**
@@ -14,25 +13,33 @@ module.exports = class FirestoreEventStore extends IEventStore {
     this._db_ = db
   }
 
-  // tenants/tenantid/aggregates/aggregateId/events/{version}/event
-  loadAggregate (aggregatePath, aggregateType, aggregateId = null) {
-    if (!(aggregateType.prototype instanceof Aggregate))
-      return Promise.reject(ERRORS.INVALID_ARGUMENTS_ERROR('aggregateType'))
+  loadAggregateFromSnapshot (aggregatePath, aggregateType, aggregateId = null) {
+    try {
+      let aggregate = Aggregate.create(aggregateType, aggregateId || '')
+      if (!aggregateId) return Promise.resolve(aggregate)
 
-    if (!aggregateId)
-      return Promise.resolve(Aggregate.create(aggregateType))
-    else {
+      return this._db_.doc(aggregatePath.concat('/', aggregateId)).get()
+        .then(doc => {
+          aggregate.loadSnapshot(doc.data())
+          return aggregate
+        })
+    } catch(error) {
+      return Promise.reject(error)
+    }
+  }
+
+  loadAggregateFromEvents (aggregatePath, aggregateType, aggregateId, eventTypes) {
+    try {
       let aggregate = Aggregate.create(aggregateType, aggregateId)
-      let aggRef = this._db_.doc(aggregatePath.concat('/', aggregateId))
-      return aggRef.collection('events').get()
+      return this._db_.doc(aggregatePath.concat('/', aggregateId)).collection('events').get()
         .then(eventsQuerySnapshot => {
-          eventsQuerySnapshot.forEach(eventSnapshot => {
-            let e = Object.create(Evento.prototype)
-            Object.assign(e, eventSnapshot.data())
-            aggregate.loadEvent(e)
+          eventsQuerySnapshot.forEach(doc => {
+            aggregate.loadEvent(eventTypes, doc.data())
           })
           return aggregate
         })
+    } catch(error) {
+      return Promise.reject(error)
     }
   }
 

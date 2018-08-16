@@ -1,9 +1,14 @@
 'use strict'
 
-const { Bus, Aggregate, Command, InMemoryEventStore, IEventHandler, ERRORS } = require('../index')
+const setup = require('./setup').setup
+const { Bus, Aggregate, Command, FirestoreEventStore, IEventHandler, ERRORS } = require('../index')
 const IEventStore = require('../src/IEventStore')
 const IDocumentStore = require('../src/IDocumentStore')
 const { Calculator, AddNumbers } = require('./model')
+
+let docStore
+let bus
+let firestore
 
 class InvalidAggregate extends Aggregate {
   constructor() {
@@ -87,7 +92,7 @@ describe('Error handling', () => {
 
   it('should throw invalid arguments: handler', (done) => {
     try {
-      let bus2 = new Bus(new InMemoryEventStore())
+      let bus2 = new Bus(new FirestoreEventStore(firestore))
       bus2.addEventHandler(new Object())
       done('should not happen')
     }
@@ -99,17 +104,21 @@ describe('Error handling', () => {
 })
 
 describe('Not implemented', () => {
+  before (() => {
+    ({ docStore, bus, firestore } = setup())
+  })
+
   it('should throw not implemented applyEvent', (done) => {
-    const store = new InMemoryEventStore()
+    const store = new FirestoreEventStore(firestore)
     const bus = new Bus(store)
     bus.addEventHandler(new InvalidHandler())
-    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
+    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc22')
      
     promise.should.be.rejectedWith('not implemented: applyEvent').notify(done)
   })
 
   it('should throw not implemented handleCommand', (done) => {
-    const store = new InMemoryEventStore()
+    const store = new FirestoreEventStore(firestore)
     const bus = new Bus(store)
     let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidAggregate)
      
@@ -117,7 +126,7 @@ describe('Not implemented', () => {
   })
 
   it('should throw not implemented applyEvent', (done) => {
-    const store = new InMemoryEventStore()
+    const store = new FirestoreEventStore(firestore)
     const bus = new Bus(store)
     InvalidAggregate.prototype.handleCommand = Calculator.prototype.handleCommand
     let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidAggregate)
@@ -126,7 +135,7 @@ describe('Not implemented', () => {
   })
 
   it('should throw invalid arguments eventType', (done) => {
-    const store = new InMemoryEventStore()
+    const store = new FirestoreEventStore(firestore)
     const bus = new Bus(store)
     let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidAggregate2)
      
@@ -134,7 +143,7 @@ describe('Not implemented', () => {
   })
 
   it('should throw invalid arguments aggregateType', (done) => {
-    const store = new InMemoryEventStore()
+    const store = new FirestoreEventStore(firestore)
     const bus = new Bus(store)
     let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidCommand)
      
@@ -194,8 +203,8 @@ describe('Not implemented', () => {
   })
 
   it('should throw not implemented event store commitAggregate', (done) => {
-    const store = new InvalidEventStore()
-    InvalidEventStore.prototype.loadAggregate = InMemoryEventStore.prototype.loadAggregate
+    const store = new FirestoreEventStore(firestore)
+    delete FirestoreEventStore.prototype.commitAggregate
     const bus = new Bus(store)
     let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
      

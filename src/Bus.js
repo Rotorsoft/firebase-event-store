@@ -36,7 +36,7 @@ module.exports = class Bus {
   sendCommand (command, tenantPath, storePath, aggregateType, aggregateId = null, expectedVersion = -1) {
     let aggregatePath = tenantPath.concat(storePath)
     let _aggregate
-    return this._store_.loadAggregate(aggregatePath, aggregateType, aggregateId)
+    return this._store_.loadAggregateFromSnapshot(aggregatePath, aggregateType, aggregateId)
       .then(aggregate => {
         // if (this._name_) console.log(`${this._name_}: after load with expected version = ${expectedVersion} - `, JSON.stringify(aggregate))
         aggregate.handleCommand(command)

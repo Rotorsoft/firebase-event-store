@@ -28,8 +28,10 @@ module.exports = class Aggregate {
   handleCommand (command) { throw ERRORS.NOT_IMPLEMENTED_ERROR('handleCommand') }
   applyEvent (event) { throw ERRORS.NOT_IMPLEMENTED_ERROR('applyEvent') }
 
-  loadEvent (event) {
-    // console.log(`Loading event ${JSON.stringify(event)}`)
+  loadEvent (eventTypes, eventObject) {
+    const eventType = eventTypes[eventObject._event_name_]
+    if (!eventType) throw ERRORS.PRECONDITION_ERROR('Invalid event type: '.concat(eventObject._event_name_))
+    const event = Evento.create(eventType, eventObject)
     this.applyEvent(event)
     this._aggregate_version_++
   }
@@ -41,15 +43,21 @@ module.exports = class Aggregate {
    * @param {Object} payload event payload
    */
   addEvent (eventType, uid, payload) {
-    if (!(eventType.prototype instanceof Evento)) throw ERRORS.INVALID_ARGUMENTS_ERROR('eventType')
-    let event = new eventType.prototype.constructor()
-    Object.defineProperty(event, '_event_name_', { value: eventType.name, enumerable: true, writable: false })
-    Object.defineProperty(event, '_event_creator_', { value: uid, enumerable: true, writable: false })
-    Object.keys(payload).forEach(p => {
-      Object.defineProperty(event, p, { value: payload[p], enumerable: true, writable: false })
-    })
+    const event = Evento.create(eventType, payload, uid)
     // console.log(`Adding event ${JSON.stringify(event)}`)
     this.applyEvent(event)
     this._uncommitted_events_.push(event)
+  }
+
+  /**
+   * Load aggregate from stored snapshot
+   * @param {Object} snapshot Aggregate snapshot
+   */
+  loadSnapshot (snapshot) {
+    if (snapshot) {
+      Object.keys(snapshot).forEach(k => {
+        if (k !== '_aggregate_id_' && k !== '_aggregate_version_') this[k] = snapshot[k]
+      })
+    }
   }
 }

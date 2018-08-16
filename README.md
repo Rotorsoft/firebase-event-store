@@ -14,14 +14,15 @@ const {
   Aggregate,
   Command,
   Evento,
-  InMemoryDocumentStore,
-  InMemoryEventStore,
+  FirestoreDocumentStore,
+  FirestoreEventStore,
   Bus,
   ERRORS
 } = require('../index')
 
-const docStore = new InMemoryDocumentStore()
-const evtStore = new InMemoryEventStore()
+const firestoreDb = //TODO init firesore db
+const docStore = new FirestoreDocumentStore(firestoreDb)
+const evtStore = new FirestoreEventStore(firestoreDb)
 const bus = new Bus(evtStore)
 bus.addEventHandler(new EventCounter(docStore))
 
@@ -50,10 +51,11 @@ class Calculator extends Aggregate {
     }
   }
 
-  applyEvent (e) {
-    switch (e.eventName) {
-      case NumbersAdded.name:
-        this.sum += (e.a + e.b)
+  applyEvent (event) {
+    switch (event.constructor) {
+      case NumbersAdded:
+        this.creator = event.eventCreator
+        this.sum += (event.a + event.b)
         break
     }
   }

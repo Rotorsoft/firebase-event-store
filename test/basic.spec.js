@@ -2,16 +2,17 @@
 
 const { Command } = require('../index')
 const setup = require('./setup').setup
-const { Calculator, AddNumbers, EventCounter } = require('./model')
+const { Calculator, AddNumbers, EventCounter, NumbersAdded } = require('./model')
 
+let evtStore
 let docStore
 let bus
 
 process.on('unhandledRejection', error => { console.log('unhandledRejection', error) })
 
-describe('In Memory', () => {
+describe('Basic', () => {
   before (() => {
-    ({ docStore, bus } = setup(true))
+    ({ evtStore, docStore, bus } = setup())
     bus.addEventHandler(new EventCounter(docStore))
   })
 
@@ -22,7 +23,8 @@ describe('In Memory', () => {
       .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 1 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
       .then(calc => { 
         calculator = calc
-        return docStore.get('/counters/counter1')
+        let counter = docStore.get('/counters/counter1')
+        return counter
       })
       .then(counter => {
         calculator.aggregateVersion.should.equal(2)
@@ -36,11 +38,40 @@ describe('In Memory', () => {
       })
   })
 
+  it('should load aggregate from events', (done) => {
+    bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc100')
+      .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
+      .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 1 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
+      .then(calc => { 
+        return evtStore.loadAggregateFromEvents('/tenants/tenant1/calculators', Calculator, calc.aggregateId, { NumbersAdded })
+      })
+      .then(calc => {
+        calc.aggregateVersion.should.equal(2)
+        calc.sum.should.equal(12)
+        calc.creator.should.equal('user1')
+        done()
+      })
+      .catch(error => {
+        done(error)
+      })
+  })
+
+  it('should throw invalid event type when loading aggregate from events', (done) => {
+    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc101')
+      .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
+      .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 1 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
+      .then(calc => { 
+        return evtStore.loadAggregateFromEvents('/tenants/tenant1/calculators', Calculator, calc.aggregateId, { })
+      })
+  
+    promise.should.be.rejectedWith('precondition error: Invalid event type: NumbersAdded').notify(done) 
+  })
+
   it('should accumulate numbers to 3 with system generated id', (done) => {
     bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator)
       .then(calculator => {
         calculator.aggregateVersion.should.equal(0)
-        calculator.aggregateId.should.equal('1')
+        calculator.aggregateId.length.should.be.at.least(10)
         calculator.sum.should.equal(3)
         calculator.creator.should.equal('user1')
         done()
@@ -119,11 +150,11 @@ describe('In Memory', () => {
 
 describe('Firebase Mock', () => {
   before (() => {
-    ({ docStore, bus } = setup(false))
+    ({ docStore, bus } = setup())
   })
 
   it('should accumulate numbers to 10', (done) => {
-    bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
+    bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc2')
       .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
       .then(calc => {
         calc.aggregateVersion.should.equal(1)
@@ -139,7 +170,7 @@ describe('Firebase Mock', () => {
     bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator)
       .then(calculator => {
         calculator.aggregateVersion.should.equal(0)
-        calculator.aggregateId.length.should.not.equal(0)
+        calculator.aggregateId.length.should.be.at.least(10)
         calculator.sum.should.equal(3)
         calculator.creator.should.equal('user1')
         done()
@@ -222,16 +253,16 @@ describe('Firebase Mock', () => {
 describe('Many commands', () => {
   it('should accumulate numbers to 1004', (done) => {
     const iters = 1004
-    const bus3 = setup(false, 'many').bus
+    const bus3 = setup('many').bus
     let cmd = Command.create(AddNumbers, 'user1', { number1: 0, number2: 1 })
-    bus3.sendCommand(cmd, '/tenants/tenant1', '/calculators', Calculator, 'calc2')
+    bus3.sendCommand(cmd, '/tenants/tenant1', '/calculators', Calculator, 'calc9')
       .then(calc => {
         let commands = []
         for (let i = 0; i < iters; i++) {
           cmd = Command.create(AddNumbers, 'user1', { number1: 0, number2: 1 })
           commands.push(cmd)
         }
-        return bus3.sendCommands(commands, '/tenants/tenant1', '/calculators', Calculator, 'calc2', 0)
+        return bus3.sendCommands(commands, '/tenants/tenant1', '/calculators', Calculator, 'calc9', 0)
       })
       .then(calc => {
         calc.aggregateVersion.should.equal(iters)
