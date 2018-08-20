@@ -24,9 +24,7 @@
   },
   "homepage": "https://github.com/Rotorsoft/firebase-event-store#readme",
   "dependencies": {},
-  "engines": {
-    "node": ">=8.0.0"
-  },
+  "engines": { "node": ">=8.0.0" },
   "devDependencies": {
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
