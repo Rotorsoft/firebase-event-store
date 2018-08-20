@@ -56,7 +56,7 @@ module.exports = class Aggregate {
   loadSnapshot (snapshot) {
     if (snapshot) {
       Object.keys(snapshot).forEach(k => {
-        if (k !== '_aggregate_id_' && k !== '_aggregate_version_') this[k] = snapshot[k]
+        if (k !== '_aggregate_id_') this[k] = snapshot[k]
       })
     }
   }

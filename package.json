@@ -31,7 +31,7 @@
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "coveralls": "^3.0.2",
-    "firebase-mock": "^2.2.4",
+    "firebase-mock": "^2.2.5",
     "istanbul": "^0.4.5",
     "lodash": "^4.17.10",
     "mocha": "^5.2.0",

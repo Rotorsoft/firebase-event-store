@@ -139,20 +139,6 @@ describe('Basic', () => {
     promise.should.be.rejectedWith('document not found').notify(done)
   })
 
-  it('should throw concurrency error', (done) => {
-    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
-      .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
-      .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, 0))
-
-    promise.should.be.rejectedWith('concurrency error').notify(done)
-  })
-})
-
-describe('Firebase Mock', () => {
-  before (() => {
-    ({ docStore, bus } = setup())
-  })
-
   it('should accumulate numbers to 10', (done) => {
     bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc2')
       .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
@@ -161,36 +147,6 @@ describe('Firebase Mock', () => {
         calc.sum.should.equal(10)
         done()
       }) 
-      .catch(error => {
-        done(error)
-      })
-  })
-
-  it('should accumulate numbers to 3 with system generated id', (done) => {
-    bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator)
-      .then(calculator => {
-        calculator.aggregateVersion.should.equal(0)
-        calculator.aggregateId.length.should.be.at.least(10)
-        calculator.sum.should.equal(3)
-        calculator.creator.should.equal('user1')
-        done()
-      })
-      .catch(error => {
-        done(error)
-      })
-  })
-
-  it('should save doc', (done) => {
-    const path = '/docs/doc1'
-    docStore.set(path, { a: 1, b: 2 })
-      .then(doc => {
-        return docStore.get(path)
-      })
-      .then(doc2 => {
-        doc2.a.should.equal(1)
-        doc2.b.should.equal(2)
-        done()
-      })
       .catch(error => {
         done(error)
       })
@@ -226,21 +182,16 @@ describe('Firebase Mock', () => {
       })
   })
 
-  it('should save and delete doc', (done) => {
-    const path = '/docs/doc2'
-    let promise = docStore.set(path, { a: 1, b: 2 })
-      .then(() => docStore.delete(path))
-      .then(() => docStore.get(path))
-    
-    promise.should.be.rejectedWith('document not found').notify(done)
-  })
-
   it('should throw concurrency error', (done) => {
     let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
-      .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
-      .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, 0))
-       
-    promise.should.be.rejectedWith('concurrency error').notify(done)
+      .then(calc => {
+        return bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion)
+      })
+      .then(calc => {
+        return bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, 0)
+      })
+
+      promise.should.be.rejectedWith('concurrency error').notify(done)
   })
 
   it('should throw invalid arguments aggregateType', (done) => {

@@ -25,62 +25,6 @@ const mocksdk = new firebasemock.MockFirebaseSdk(
 mocksdk.initializeApp()
 mockfirestore.autoFlush()
 
-const doccreate = function (data, callback) {
-  var err = this._nextErr('create')
-  if (this.data) 
-    err = 'document already exists'
-  else 
-    data = _.cloneDeep(data);
-  var self = this
-  return new Promise(function (resolve, reject) {
-    self._defer('create', _.toArray(arguments), function () {
-      if (err === null) {
-        self._dataChanged(data);
-        resolve(data)
-      } else {
-        if (callback) {
-          callback(err)
-        }
-        reject(err)
-      }
-    })
-  })
-}
-
-firebasemock.MockFirestore.prototype.batch = function () {
-  var self = this;
-  let promises = []
-  return {
-    create: function(doc, data) {
-      let proto = Object.getPrototypeOf(doc)
-      if (!proto.create) proto.create = doccreate
-      promises.push(doc.create(data))
-    },
-    set: function(doc, data, opts) {
-      var _opts = _.assign({}, { merge: false }, opts)
-      if (_opts.merge) {
-        promises.push(doc._update(data, { setMerge: true }))
-      }
-      else {
-        promises.push(doc.set(data))
-      }
-    },
-    update: function(doc, data) {
-      promises.push(doc.update(data))
-    },
-    delete: function(doc) {
-      promises.push(doc.delete())
-    },
-    commit: function() {
-      if (self.queue.events.length > 0) {
-        self.flush()
-      }
-      // execute sequentially
-      return promises.reduce((chain, promise) => chain.then(results => promise.then(result => [...results, result])), Promise.resolve([]))
-    }
-  }
-}
-
 chai.use(chaiasp)
 chai.should()
 

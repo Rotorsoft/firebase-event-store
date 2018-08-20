@@ -44,6 +44,10 @@ module.exports = class FirestoreEventStore extends IEventStore {
   }
 
   commitAggregate (aggregatePath, aggregate, expectedVersion = -1) {
+    if (aggregate.aggregateVersion !== expectedVersion) {
+      throw ERRORS.CONCURRENCY_ERROR()
+    }
+    
     let plainAggregate = Object.assign({}, aggregate)
     let batch = this._db_.batch()
     let aggCollRef = this._db_.collection(aggregatePath)

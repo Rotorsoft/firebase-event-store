@@ -70,11 +70,11 @@ module.exports = class Bus {
    * @param {Number} expectedVersion Expected aggregate version
    * @returns {Aggregate} Last version of aggregate
    */
-  sendCommands (commands, tenantPath, storePath, aggregateType, aggregateId, expectedVersion) {
-    let wrappers = []
-    for (let i = 0; i < commands.length; i++) {
-      wrappers.push(() => this.sendCommand(commands[i], tenantPath, storePath, aggregateType, aggregateId, expectedVersion + i))
+  async sendCommands (commands, tenantPath, storePath, aggregateType, aggregateId, expectedVersion) {
+    let aggregate
+    for(let i = 0; i < commands.length; i++) {
+      aggregate = await this.sendCommand(commands[i], tenantPath, storePath, aggregateType, aggregateId, expectedVersion + i)
     }
-    return wrappers.reduce((chain, wrapper, index) => chain.then(wrapper), Promise.resolve())
+    return aggregate
   }
 }
