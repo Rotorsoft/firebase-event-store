@@ -13,37 +13,24 @@ module.exports = class FirestoreEventStore extends IEventStore {
     this._db_ = db
   }
 
-  loadAggregateFromSnapshot (aggregatePath, aggregateType, aggregateId = null) {
-    try {
-      let aggregate = Aggregate.create(aggregateType, aggregateId || '')
-      if (!aggregateId) return Promise.resolve(aggregate)
-
-      return this._db_.doc(aggregatePath.concat('/', aggregateId)).get()
-        .then(doc => {
-          aggregate.loadSnapshot(doc.data())
-          return aggregate
-        })
-    } catch(error) {
-      return Promise.reject(error)
-    }
+  async loadAggregateFromSnapshot (aggregatePath, aggregateType, aggregateId = null) {
+    let aggregate = Aggregate.create(aggregateType, aggregateId || '')
+    if (!aggregateId) return aggregate
+    let doc = await this._db_.doc(aggregatePath.concat('/', aggregateId)).get()
+    aggregate.loadSnapshot(doc.data())
+    return aggregate
   }
 
-  loadAggregateFromEvents (aggregatePath, aggregateType, aggregateId, eventTypes) {
-    try {
-      let aggregate = Aggregate.create(aggregateType, aggregateId)
-      return this._db_.doc(aggregatePath.concat('/', aggregateId)).collection('events').get()
-        .then(eventsQuerySnapshot => {
-          eventsQuerySnapshot.forEach(doc => {
-            aggregate.loadEvent(eventTypes, doc.data())
-          })
-          return aggregate
-        })
-    } catch(error) {
-      return Promise.reject(error)
-    }
+  async loadAggregateFromEvents (aggregatePath, aggregateType, aggregateId, eventTypes) {
+    let aggregate = Aggregate.create(aggregateType, aggregateId)
+    let eventsQuerySnapshot = await this._db_.doc(aggregatePath.concat('/', aggregateId)).collection('events').get()
+    eventsQuerySnapshot.forEach(doc => {
+      aggregate.loadEvent(eventTypes, doc.data())
+    })
+    return aggregate
   }
 
-  commitAggregate (aggregatePath, aggregate, expectedVersion = -1) {
+  async commitAggregate (aggregatePath, aggregate, expectedVersion = -1) {
     if (aggregate.aggregateVersion !== expectedVersion) {
       throw ERRORS.CONCURRENCY_ERROR()
     }
@@ -71,14 +58,14 @@ module.exports = class FirestoreEventStore extends IEventStore {
     })
     plainAggregate._aggregate_version_ = expectedVersion
     batch.update(aggRef, plainAggregate)
-    return batch.commit()
-      .then(results => {
-        // console.log(results)
-        aggregate._aggregate_version_ = expectedVersion
-        return aggregate
-      })
-      .catch(() => {
-        throw ERRORS.CONCURRENCY_ERROR() 
-      })
+    try {
+      let results = await batch.commit()
+      // console.log(results)
+      aggregate._aggregate_version_ = expectedVersion
+      return aggregate
+    }
+    catch(error) {
+      throw ERRORS.CONCURRENCY_ERROR() 
+    }
   }
 }

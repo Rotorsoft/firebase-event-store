@@ -1,11 +1,9 @@
-const _ = require('lodash')
 const {
   FirestoreEventStore,
   FirestoreDocumentStore,
   Bus,
 } = require('../index')
 const chai = require('chai')
-const chaiasp = require('chai-as-promised')
 
 const firebasemock = require('firebase-mock')
 // const mockauth = new firebasemock.MockAuthentication()
@@ -25,7 +23,6 @@ const mocksdk = new firebasemock.MockFirebaseSdk(
 mocksdk.initializeApp()
 mockfirestore.autoFlush()
 
-chai.use(chaiasp)
 chai.should()
 
 module.exports = {

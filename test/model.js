@@ -47,14 +47,12 @@ class EventCounter extends IEventHandler {
     this.docStore = docStore
   }
 
-  applyEvent (tenantPath, event, aggregate) {
+  async applyEvent (tenantPath, event, aggregate) {
     const path = '/counters/counter1'
     if (event.eventName === NumbersAdded.name) {
-      this.docStore.set(path, {})
-        .then(doc => {
-          doc.eventCount = (doc.eventCount || 0) + 1
-          return this.docStore.set(path, doc)
-        })
+      let doc = await this.docStore.set(path, {})
+      doc.eventCount = (doc.eventCount || 0) + 1
+      return await this.docStore.set(path, doc)
     }
   }
 }

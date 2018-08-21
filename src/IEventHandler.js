@@ -12,5 +12,5 @@ module.exports = class IEventHandler {
    * @param {Evento} event Event object
    * @param {Aggregate} aggregate Aggregate object
    */
-  applyEvent (tenantPath, event, aggregate) { throw ERRORS.NOT_IMPLEMENTED_ERROR('applyEvent') }
+  async applyEvent (tenantPath, event, aggregate) { throw ERRORS.NOT_IMPLEMENTED_ERROR('applyEvent') }
 }

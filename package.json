@@ -24,14 +24,14 @@
   },
   "homepage": "https://github.com/Rotorsoft/firebase-event-store#readme",
   "dependencies": {},
-  "engines": { "node": ">=8.0.0" },
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "devDependencies": {
     "chai": "^4.1.2",
-    "chai-as-promised": "^7.1.1",
     "coveralls": "^3.0.2",
     "firebase-mock": "^2.2.5",
-    "istanbul": "^0.4.5",
-    "lodash": "^4.17.10",
+    "istanbul": "^1.1.0-alpha.1",
     "mocha": "^5.2.0",
     "mocha-lcov-reporter": "^1.3.0"
   }

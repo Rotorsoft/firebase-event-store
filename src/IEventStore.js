@@ -13,7 +13,7 @@ module.exports = class IEventStore {
    * @param {String} aggregateId optional aggregate id - if not provided new aggregate is created and nothing is loaded
    * @returns Promise with loaded aggregate
    */
-  loadAggregateFromSnapshot (aggregatePath, aggregateType, aggregateId = null) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('loadAggregateFromSnapshot')) }
+  async loadAggregateFromSnapshot (aggregatePath, aggregateType, aggregateId = null) { throw ERRORS.NOT_IMPLEMENTED_ERROR('loadAggregateFromSnapshot') }
 
     /**
    * Loads aggregate from stored events history
@@ -23,7 +23,7 @@ module.exports = class IEventStore {
    * @param {Object} eventTypes dictionary of event types used to re-create the events
    * @returns Promise with loaded aggregate
    */
-  loadAggregateFromEvents (aggregatePath, aggregateType, aggregateId, eventTypes) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('loadAggregateFromEvents')) }
+  async loadAggregateFromEvents (aggregatePath, aggregateType, aggregateId, eventTypes) { throw ERRORS.NOT_IMPLEMENTED_ERROR('loadAggregateFromEvents') }
 
   /**
    * Commits pending events to store
@@ -32,5 +32,5 @@ module.exports = class IEventStore {
    * @param {int} expectedVersion expected version in store for concurrency check
    * @returns Promise with updated aggregate
    */
-  commitAggregate (aggregatePath, aggregate, expectedVersion = -1) { return Promise.reject(ERRORS.NOT_IMPLEMENTED_ERROR('commitAggregate')) }
+  async commitAggregate (aggregatePath, aggregate, expectedVersion = -1) { throw ERRORS.NOT_IMPLEMENTED_ERROR('commitAggregate') }
 }

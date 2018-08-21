@@ -79,26 +79,22 @@ class InvalidDocumentStore extends IDocumentStore {
 }
 
 describe('Error handling', () => {
-  it('should throw invalid arguments: store', (done) => {
+  it('should throw invalid arguments: store', async () => {
     try {
       let bus2 = new Bus(new Object())
-      done('should not happen')
     }
     catch(error) {
       error.message.should.equal('invalid arguments: store')
-      done()
     }
   })
 
-  it('should throw invalid arguments: handler', (done) => {
+  it('should throw invalid arguments: handler', async () => {
     try {
       let bus2 = new Bus(new FirestoreEventStore(firestore))
       bus2.addEventHandler(new Object())
-      done('should not happen')
     }
     catch(error) {
       error.message.should.equal('invalid arguments: handler')
-      done()
     }
   })
 })
@@ -108,134 +104,159 @@ describe('Not implemented', () => {
     ({ docStore, bus, firestore } = setup())
   })
 
-  it('should throw not implemented applyEvent', (done) => {
-    const store = new FirestoreEventStore(firestore)
-    const bus = new Bus(store)
-    bus.addEventHandler(new InvalidHandler())
-    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc22')
-     
-    promise.should.be.rejectedWith('not implemented: applyEvent').notify(done)
+  it('should throw not implemented applyEvent', async () => {
+    try {
+      const store = new FirestoreEventStore(firestore)
+      const bus = new Bus(store)
+      bus.addEventHandler(new InvalidHandler())
+      await bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc22')
+    }
+    catch(error) {
+      error.message.should.be.equal('not implemented: applyEvent')
+    }
   })
 
-  it('should throw not implemented handleCommand', (done) => {
-    const store = new FirestoreEventStore(firestore)
-    const bus = new Bus(store)
-    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidAggregate)
-     
-    promise.should.be.rejectedWith('not implemented: handleCommand').notify(done)
+  it('should throw not implemented handleCommand', async () => {
+    try {
+      const store = new FirestoreEventStore(firestore)
+      const bus = new Bus(store)
+      await bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidAggregate)
+    }
+    catch(error) { 
+      error.message.should.be.equal('not implemented: handleCommand')
+    }
   })
 
-  it('should throw not implemented applyEvent', (done) => {
-    const store = new FirestoreEventStore(firestore)
-    const bus = new Bus(store)
-    InvalidAggregate.prototype.handleCommand = Calculator.prototype.handleCommand
-    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidAggregate)
-     
-    promise.should.be.rejectedWith('not implemented: applyEvent').notify(done)
+  it('should throw not implemented applyEvent', async () => {
+    try {
+      const store = new FirestoreEventStore(firestore)
+      const bus = new Bus(store)
+      InvalidAggregate.prototype.handleCommand = Calculator.prototype.handleCommand
+      await bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidAggregate)
+    }
+    catch(error) { 
+      error.message.should.be.equal('not implemented: applyEvent')
+    }
   })
 
-  it('should throw invalid arguments eventType', (done) => {
-    const store = new FirestoreEventStore(firestore)
-    const bus = new Bus(store)
-    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidAggregate2)
-     
-    promise.should.be.rejectedWith('invalid arguments: eventType').notify(done)
+  it('should throw invalid arguments eventType', async () => {
+    try {
+      const store = new FirestoreEventStore(firestore)
+      const bus = new Bus(store)
+      await bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidAggregate2)
+    }
+    catch(error) { 
+      error.message.should.be.equal('invalid arguments: eventType')
+    }
   })
 
-  it('should throw invalid arguments aggregateType', (done) => {
-    const store = new FirestoreEventStore(firestore)
-    const bus = new Bus(store)
-    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidCommand)
-     
-    promise.should.be.rejectedWith('invalid arguments: aggregateType').notify(done)
+  it('should throw invalid arguments aggregateType', async () => {
+    try {
+      const store = new FirestoreEventStore(firestore)
+      const bus = new Bus(store)
+      await bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', InvalidCommand)
+    }
+    catch(error) {
+      error.message.should.be.equal('invalid arguments: aggregateType')
+    }
   })
 
-  it('should throw not implemented validate', (done) => {
+  it('should throw not implemented validate', async () => {
     try {
       Command.create(InvalidCommand, 'user1', { })
-      done('should not happen')
     }
     catch(error) {
       error.message.should.equal('not implemented: validate')
-      done()
     } 
   })
 
-  it('should throw invalid arguments commandType', (done) => {
+  it('should throw invalid arguments commandType', async () => {
     try {
       Command.create(InvalidHandler, 'user1', { })
-      done('should not happen')
     }
     catch(error) {
       error.message.should.equal('invalid arguments: commandType')
-      done()
     } 
   })
 
-  it('should throw missing arguments', (done) => {
+  it('should throw missing arguments', async () => {
     try {
       Command.create(InvalidCommand2, 'user1', {})
-      done('should not happen')
     }
     catch(error) {
       error.message.should.equal('missing arguments: a')
-      done()
     } 
   })
 
-  it('should throw precondition error', (done) => {
+  it('should throw precondition error', async () => {
     try {
       Command.create(InvalidCommand3, 'user1', { a: 1, b: 3 })
-      done('should not happen')
     }
     catch(error) {
       error.message.should.equal('precondition error: a must be greater than b')
-      done()
     }
   })
   
-  it('should throw not implemented event store loadAggregate', (done) => {
-    const store = new InvalidEventStore()
-    const bus = new Bus(store)
-    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
-     
-    promise.should.be.rejectedWith('not implemented').notify(done)
+  it('should throw not implemented event store loadAggregate', async () => {
+    try {
+      const store = new InvalidEventStore()
+      const bus = new Bus(store)
+      await bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
+    }
+    catch(error) { 
+      error.message.should.be.equal('not implemented: loadAggregateFromSnapshot')
+    }
   })
 
-  it('should throw not implemented event store commitAggregate', (done) => {
-    const store = new FirestoreEventStore(firestore)
-    delete FirestoreEventStore.prototype.commitAggregate
-    const bus = new Bus(store)
-    let promise = bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
-     
-    promise.should.be.rejectedWith('not implemented').notify(done)
+  it('should throw not implemented event store commitAggregate', async () => {
+    try {
+      const store = new FirestoreEventStore(firestore)
+      delete FirestoreEventStore.prototype.commitAggregate
+      const bus = new Bus(store)
+      await bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
+    }
+    catch(error) {
+      error.message.should.be.equal('not implemented: commitAggregate')
+    }
   })
 
-  it('should throw not implemented document store get', (done) => {
-    const store = new InvalidDocumentStore()
-    let promise = store.get('/')
-     
-    promise.should.be.rejectedWith('not implemented: get').notify(done)
+  it('should throw not implemented document store get', async () => {
+    try {
+      const store = new InvalidDocumentStore()
+      await store.get('/')
+    }
+    catch(error) {
+      error.message.should.be.equal('not implemented: get')
+    }
   })
 
-  it('should throw not implemented document store set', (done) => {
-    const store = new InvalidDocumentStore()
-    let promise = store.set('/', {})
-     
-    promise.should.be.rejectedWith('not implemented: set').notify(done)
+  it('should throw not implemented document store set', async () => {
+    try {
+      const store = new InvalidDocumentStore()
+      await store.set('/', {})
+    }
+    catch(error) {
+      error.message.should.be.equal('not implemented: set')
+    }
   })
 
-  it('should throw not implemented document store delete', (done) => {
-    const store = new InvalidDocumentStore()
-    let promise = store.delete('/')
-     
-    promise.should.be.rejectedWith('not implemented: delete').notify(done)
+  it('should throw not implemented document store delete', async () => {
+    try {
+      const store = new InvalidDocumentStore()
+      await store.delete('/')
+    }
+    catch(error) {
+      error.message.should.be.equal('not implemented: delete')
+    }
   })
 
-  it('should throw not implemented document store query', (done) => {
-    const store = new InvalidDocumentStore()
-    let promise = store.query('/', {})
-     
-    promise.should.be.rejectedWith('not implemented: query').notify(done)
+  it('should throw not implemented document store query', async () => {
+    try {
+      const store = new InvalidDocumentStore()
+      await store.query('/', {})
+    }
+    catch(error) {
+      error.message.should.be.equal('not implemented: query')
+    }
   })
 })

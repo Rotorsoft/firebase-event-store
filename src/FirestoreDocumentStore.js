@@ -12,39 +12,37 @@ module.exports = class FirestoreDocumentStore extends IDocumentStore {
     this._db_ = db
   }
 
-  get (path) {
-    return this._db_.doc(path).get()
-      .then(docSnapshot => {
-        if (!docSnapshot.exists) throw ERRORS.DOCUMENT_NOT_FOUND_ERROR(path)
-        return docSnapshot.data()
-      })
+  async get (path) {
+    let docSnapshot = await this._db_.doc(path).get()
+    if (!docSnapshot.exists) throw ERRORS.DOCUMENT_NOT_FOUND_ERROR(path)
+    return docSnapshot.data()
   }
 
-  set (path, doc, merge = true) {
-    return this._db_.doc(path).set(doc, { merge: merge })
-      .then(() => this.get(path))
+  async set (path, doc, merge = true) {
+    await this._db_.doc(path).set(doc, { merge: merge })
+    return await this.get(path)
   }
 
-  delete (path) {
-    return this._db_.doc(path).delete()
+  async delete (path) {
+    return await this._db_.doc(path).delete()
   }
 
-  query (path, where = null) {
+  async query (path, where = null) {
     if (where) {
-      return this._db_.collection(path).where(where.fieldPath, where.opStr, where.value).get()
-        .then(snapshot => snapshot.docs.map(d => { 
-          let doc = d.data()
-          doc._id_ = d.id
-          return doc
-        }))
+      let snapshot = await this._db_.collection(path).where(where.fieldPath, where.opStr, where.value).get()
+      return snapshot.docs.map(d => { 
+        let doc = d.data()
+        doc._id_ = d.id
+        return doc
+      })
     }
     else {
-      return this._db_.collection(path).get()
-        .then(snapshot => snapshot.docs.map(d => {
-          let doc = d.data()
-          doc._id_ = d.id
-          return doc
-        }))
+      let snapshot = await this._db_.collection(path).get()
+      return snapshot.docs.map(d => {
+        let doc = d.data()
+        doc._id_ = d.id
+        return doc
+      })
     }
   }
 }

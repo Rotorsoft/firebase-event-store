@@ -33,31 +33,21 @@ module.exports = class Bus {
    * @param {String} aggregateId Optional aggregate id (will create one if not provided)
    * @param {Number} expectedVersion Expected aggregate version or -1 when creating first event
    */
-  sendCommand (command, tenantPath, storePath, aggregateType, aggregateId = null, expectedVersion = -1) {
+  async sendCommand (command, tenantPath, storePath, aggregateType, aggregateId = null, expectedVersion = -1) {
     let aggregatePath = tenantPath.concat(storePath)
-    let _aggregate
-    return this._store_.loadAggregateFromSnapshot(aggregatePath, aggregateType, aggregateId)
-      .then(aggregate => {
-        // if (this._name_) console.log(`${this._name_}: after load with expected version = ${expectedVersion} - `, JSON.stringify(aggregate))
-        aggregate.handleCommand(command)
-        return this._store_.commitAggregate(aggregatePath, aggregate, expectedVersion)
-      })
-      .then(aggregate => {
-        // if (this._name_) console.log(`${this._name_}: after commit - `, JSON.stringify(aggregate))
-        _aggregate = aggregate
-        // handle uncommited events
-        let promises = []
-        this._handlers_.forEach(h => {
-          aggregate._uncommitted_events_.forEach(e => {
-            promises.push(h.applyEvent(tenantPath, e, aggregate))
-          })
-        })
-        return Promise.all(promises)
-      })
-      .then(() => {
-        _aggregate._uncommitted_events_ = []
-        return _aggregate
-      })
+    let aggregate = await this._store_.loadAggregateFromSnapshot(aggregatePath, aggregateType, aggregateId)
+    if (this._name_) console.log(`${this._name_}: after load with expected version = ${expectedVersion} - `, JSON.stringify(aggregate))
+    aggregate.handleCommand(command)
+    aggregate = await this._store_.commitAggregate(aggregatePath, aggregate, expectedVersion)
+    if (this._name_) console.log(`${this._name_}: after commit - `, JSON.stringify(aggregate))
+    // handle uncommited events
+    for(let handler of this._handlers_) {
+      for(let event of aggregate._uncommitted_events_) {
+        await handler.applyEvent(tenantPath, event, aggregate)
+      }
+    }
+    aggregate._uncommitted_events_ = []
+    return aggregate
   }
 
   /**
