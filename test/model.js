@@ -23,10 +23,12 @@ class Calculator extends Aggregate {
     this.sum = 0
   }
 
-  handleCommand (command) {
+  get path () { return '/calculators' } 
+
+  handleCommand (actor, command) {
     switch (command.constructor) {
       case AddNumbers:
-        this.addEvent(NumbersAdded, command.uid, { a: command.number1, b: command.number2 })
+        this.addEvent(actor.id, NumbersAdded, { a: command.number1, b: command.number2 })
         break
     }
   }
@@ -42,17 +44,18 @@ class Calculator extends Aggregate {
 }
 
 class EventCounter extends IEventHandler {
-  constructor(docStore) {
+  constructor(db) {
     super()
-    this.docStore = docStore
+    this.db = db
   }
 
-  async applyEvent (tenantPath, event, aggregate) {
+  async applyEvent (actor, event, aggregate) {
     const path = '/counters/counter1'
     if (event.eventName === NumbersAdded.name) {
-      let doc = await this.docStore.set(path, {})
+      let snap = await this.db.doc(path).get()
+      let doc = snap.data() || {}
       doc.eventCount = (doc.eventCount || 0) + 1
-      return await this.docStore.set(path, doc)
+      return await this.db.doc(path).set(doc)
     }
   }
 }

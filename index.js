@@ -7,7 +7,6 @@ const Bus = require('./src/Bus')
 const IEventHandler = require('./src/IEventHandler')
 const ERRORS = require('./src/errors')
 const FirestoreEventStore = require('./src/FirestoreEventStore')
-const FirestoreDocumentStore = require('./src/FirestoreDocumentStore')
 
 module.exports = {
   Aggregate,
@@ -16,6 +15,5 @@ module.exports = {
   Bus,
   IEventHandler,
   ERRORS,
-  FirestoreEventStore,
-  FirestoreDocumentStore
+  FirestoreEventStore
 }

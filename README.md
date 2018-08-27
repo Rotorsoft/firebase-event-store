@@ -14,14 +14,12 @@ const {
   Aggregate,
   Command,
   Evento,
-  FirestoreDocumentStore,
   FirestoreEventStore,
   Bus,
   ERRORS
 } = require('../index')
 
 const firestoreDb = //TODO init firesore db
-const docStore = new FirestoreDocumentStore(firestoreDb)
 const evtStore = new FirestoreEventStore(firestoreDb)
 const bus = new Bus(evtStore)
 bus.addEventHandler(new EventCounter(docStore))
@@ -43,10 +41,12 @@ class Calculator extends Aggregate {
     this.sum = 0
   }
 
-  handleCommand (command) {
+  get path () { return '/calculators' }
+
+  handleCommand (actor, command) {
     switch (command.constructor) {
       case AddNumbers:
-        this.addEvent(NumbersAdded, command.uid, { a: command.number1, b: command.number2 })
+        this.addEvent(actor.id, NumbersAdded, { a: command.number1, b: command.number2 })
         break
     }
   }
@@ -62,32 +62,26 @@ class Calculator extends Aggregate {
 }
 
 class EventCounter extends IEventHandler {
-  constructor(docStore) {
+  constructor(db) {
     super()
-    this.docStore = docStore
+    this.db = db
   }
 
-  applyEvent (tenantPath, event, aggregate) {
+  applyEvent (actor, event, aggregate) {
     const path = '/counters/counter1'
     if (event.eventName === NumbersAdded.name) {
-      this.docStore.set(path, {})
-        .then(doc => {
-          doc.eventCount = (doc.eventCount || 0) + 1
-          return this.docStore.set(path, doc)
-        })
+      let snap = await this.db.doc(path).get()
+      let doc = snap.data() || {}
+      doc.eventCount = (doc.eventCount || 0) + 1
+      return await this.db.doc(path).set(doc)
     }
   }
 }
 
-bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 1, number2: 2 }), '/tenants/tenant1', '/calculators', Calculator, 'calc1')
-  .then(calc => bus.sendCommand(Command.create(AddNumbers, 'user1', { number1: 3, number2: 4 }), '/tenants/tenant1', '/calculators', Calculator, calc.aggregateId, calc.aggregateVersion))
-    .then(calc => {
-      console.log(calc.sum)
-    }) 
-    .catch(error => {
-      console.error(error)
-    })
-  })
+let actor = { id: 'user1', tenant: 'tenant1' }
+let calc = await bus.sendCommand(actor, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc1')
+calc = await bus.sendCommand(actor, Command.create(AddNumbers, { number1: 3, number2: 4 }), Calculator, calc.aggregateId, calc.aggregateVersion)
+console.log(calc.sum)
 ```
 
 ## Tests

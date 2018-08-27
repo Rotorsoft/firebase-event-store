@@ -1,6 +1,5 @@
 const {
   FirestoreEventStore,
-  FirestoreDocumentStore,
   Bus,
 } = require('../index')
 const chai = require('chai')
@@ -27,14 +26,12 @@ chai.should()
 
 module.exports = {
   setup: function (busName) {
-    let docStore, evtStore, bus
+    let evtStore, bus
     const db = mocksdk.firestore()
-    docStore = new FirestoreDocumentStore(db)
     evtStore = new FirestoreEventStore(db)
     bus = new Bus(evtStore, busName)
     return { 
       evtStore: evtStore,
-      docStore: docStore,
       bus: bus,
       firestore: db
     }

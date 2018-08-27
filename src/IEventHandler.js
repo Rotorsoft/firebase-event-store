@@ -8,9 +8,9 @@ const ERRORS = require('./errors')
 module.exports = class IEventHandler {
   /**
    * Applies event 
-   * @param {String} tenantPath Path to tenant document
+   * @param {Object} actor User/Process sending command - must include tenant and roles
    * @param {Evento} event Event object
    * @param {Aggregate} aggregate Aggregate object
    */
-  async applyEvent (tenantPath, event, aggregate) { throw ERRORS.NOT_IMPLEMENTED_ERROR('applyEvent') }
+  async applyEvent (actor, event, aggregate) { throw ERRORS.NOT_IMPLEMENTED_ERROR('applyEvent') }
 }
