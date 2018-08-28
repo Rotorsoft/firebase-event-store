@@ -25,7 +25,7 @@ class Calculator extends Aggregate {
 
   get path () { return '/calculators' } 
 
-  handleCommand (actor, command) {
+  async handleCommand (actor, command) {
     switch (command.constructor) {
       case AddNumbers:
         this.addEvent(actor.id, NumbersAdded, { a: command.number1, b: command.number2 })

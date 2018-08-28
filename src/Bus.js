@@ -30,12 +30,16 @@ module.exports = class Bus {
    * @param {Command} command Command subclass
    * @param {Aggregate} aggregateType Aggregate subclass
    * @param {String} aggregateId Optional aggregate id (will create one if not provided)
-   * @param {Number} expectedVersion Expected aggregate version or -1 when creating first event
+   * @param {Number} expectedVersion Expected aggregate version or -1 when creating first event or sending to latest version
    */
   async sendCommand (actor, command, aggregateType, aggregateId = null, expectedVersion = -1) {
     let aggregate = await this._store_.loadAggregateFromSnapshot(actor.tenant, aggregateType, aggregateId)
     if (this._name_) console.log(`${this._name_}: after load with expected version = ${expectedVersion} - `, JSON.stringify(aggregate))
-    aggregate.handleCommand(actor, command)
+    if (aggregate._aggregate_version_ >= 0 && expectedVersion === -1) {
+      // adjust expectedVersion when aggregate found and sending to latest version
+      expectedVersion = aggregate._aggregate_version_
+    }
+    await aggregate.handleCommand(actor, command)
     aggregate = await this._store_.commitAggregate(actor.tenant, aggregate, expectedVersion)
     if (this._name_) console.log(`${this._name_}: after commit - `, JSON.stringify(aggregate))
     // handle uncommited events

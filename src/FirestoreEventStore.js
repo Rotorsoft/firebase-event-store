@@ -18,15 +18,20 @@ module.exports = class FirestoreEventStore extends IEventStore {
     if (!aggregateId) return aggregate
     const aggregatePath = '/tenants/'.concat(tenant, aggregate.path, '/', aggregateId)
     const doc = await this._db_.doc(aggregatePath).get()
-    aggregate.loadSnapshot(doc.data())
+    const snap = doc.data()
+    if (snap) {
+      Object.keys(snap).forEach(key => {
+        if (key !== '_aggregate_id_') aggregate[key] = snap[key]
+      })
+    }
     return aggregate
   }
 
   async loadAggregateFromEvents (tenant, aggregateType, aggregateId, eventTypes) {
     const aggregate = Aggregate.create(this, aggregateType, aggregateId)
     const aggregatePath = '/tenants/'.concat(tenant, aggregate.path, '/', aggregateId)
-    const eventsQuerySnapshot = await this._db_.doc(aggregatePath).collection('events').get()
-    eventsQuerySnapshot.forEach(doc => {
+    const snap = await this._db_.doc(aggregatePath).collection('events').get()
+    snap.forEach(doc => {
       aggregate.loadEvent(eventTypes, doc.data())
     })
     return aggregate

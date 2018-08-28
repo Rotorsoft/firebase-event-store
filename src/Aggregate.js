@@ -28,9 +28,24 @@ module.exports = class Aggregate {
   get aggregateVersion () { return this._aggregate_version_ }
   get path () { throw ERRORS.NOT_IMPLEMENTED_ERROR('path') }
 
-  handleCommand (actor, command) { throw ERRORS.NOT_IMPLEMENTED_ERROR('handleCommand') }
+  /**
+   * Abstract async method that must be implemented by aggregates to handle commands
+   * @param {Object} actor User/Process sending command
+   * @param {Command} command 
+   */
+  async handleCommand (actor, command) { throw ERRORS.NOT_IMPLEMENTED_ERROR('handleCommand') }
+
+  /**
+   * Abstract method that must be implemented by aggregates to apply events
+   * @param {Evento} event 
+   */
   applyEvent (event) { throw ERRORS.NOT_IMPLEMENTED_ERROR('applyEvent') }
 
+  /**
+   * Loads stored event object when loading aggregate from events history
+   * @param {Object} eventTypes All event types this aggregate can handle as properties
+   * @param {Object} eventObject Stored event object
+   */
   loadEvent (eventTypes, eventObject) {
     const eventType = eventTypes[eventObject._event_name_]
     if (!eventType) throw ERRORS.PRECONDITION_ERROR('Invalid event type: '.concat(eventObject._event_name_))
@@ -40,7 +55,7 @@ module.exports = class Aggregate {
   }
 
   /**
-   * Event factory method
+   * Event factory method used by command handlers
    * @param {String} creator actor id creating the event
    * @param {Object} eventType subclass of Evento
    * @param {Object} payload event payload
@@ -50,17 +65,5 @@ module.exports = class Aggregate {
     // console.log(`Adding event ${JSON.stringify(event)}`)
     this.applyEvent(event)
     this._uncommitted_events_.push(event)
-  }
-
-  /**
-   * Load aggregate from stored snapshot
-   * @param {Object} snapshot Aggregate snapshot
-   */
-  loadSnapshot (snapshot) {
-    if (snapshot) {
-      Object.keys(snapshot).forEach(k => {
-        if (k !== '_aggregate_id_') this[k] = snapshot[k]
-      })
-    }
   }
 }

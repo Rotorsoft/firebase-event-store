@@ -20,8 +20,8 @@ describe('Basic', () => {
 
   it('should accumulate numbers to 12', async () => {
     let calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc1')
-    calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 3, number2: 4 }), Calculator, calc.aggregateId, calc.aggregateVersion)
-    calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 1 }), Calculator, calc.aggregateId, calc.aggregateVersion)
+    calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 3, number2: 4 }), Calculator, calc.aggregateId)
+    calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 1 }), Calculator, calc.aggregateId)
     let counter = await firestore.doc('/counters/counter1').get()
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)
