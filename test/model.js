@@ -43,6 +43,10 @@ class Calculator extends Aggregate {
   }
 }
 
+const CommandMap = {
+  AddNumbers: { commandType: AddNumbers, aggregateType: Calculator }
+}
+
 class EventCounter extends IEventHandler {
   constructor(db) {
     super()
@@ -64,5 +68,6 @@ module.exports = {
   Calculator,
   AddNumbers,
   NumbersAdded,
-  EventCounter
+  EventCounter,
+  CommandMap
 }

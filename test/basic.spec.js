@@ -1,12 +1,10 @@
 'use strict'
 
-const { Command } = require('../index')
-const setup = require('./setup').setup
-const { Calculator, AddNumbers, EventCounter, NumbersAdded } = require('./model')
+const { Command, command } = require('../index')
+const { setup } = require('./setup')
+const { Calculator, AddNumbers, EventCounter, NumbersAdded, CommandMap } = require('./model')
 
-let evtStore
-let bus
-let firestore
+let bus, firestore
 
 process.on('unhandledRejection', error => { console.log('unhandledRejection', error) })
 
@@ -14,7 +12,8 @@ const actor1 = { id: 'user1', tenant: 'tenant1' }
 
 describe('Basic', () => {
   before (() => {
-    ({ evtStore, bus, firestore } = setup('basic'))
+    bus = setup(CommandMap, false)
+    firestore = bus.eventStore._db_
     bus.addEventHandler(new EventCounter(firestore))
   })
 
@@ -33,7 +32,7 @@ describe('Basic', () => {
     let calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc100')
     calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 3, number2: 4 }), Calculator, calc.aggregateId, calc.aggregateVersion)
     calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 1 }), Calculator, calc.aggregateId, calc.aggregateVersion)
-    calc = await evtStore.loadAggregateFromEvents(actor1.tenant, Calculator, calc.aggregateId, { NumbersAdded })
+    calc = await bus.eventStore.loadAggregateFromEvents(actor1.tenant, Calculator, calc.aggregateId, { NumbersAdded })
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)
     calc.creator.should.equal('user1')
@@ -44,7 +43,7 @@ describe('Basic', () => {
       let calc = bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc101')
       calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 3, number2: 4 }), Calculator, calc.aggregateId, calc.aggregateVersion)
       calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 1 }), Calculator, calc.aggregateId, calc.aggregateVersion)
-      calc = await evtStore.loadAggregateFromEvents(actor1.tenant, Calculator, calc.aggregateId, { })
+      calc = await bus.eventStore.loadAggregateFromEvents(actor1.tenant, Calculator, calc.aggregateId, { })
     }
     catch(error) {
       error.message.should.be.equal('precondition error: Invalid event type: NumbersAdded')
@@ -60,8 +59,9 @@ describe('Basic', () => {
   })
 
   it('should accumulate numbers to 10', async () => {
-    let calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc2')
-    calc = await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 3, number2: 4 }), Calculator, calc.aggregateId, calc.aggregateVersion)
+    const auth = { uid: 'user1', token: { tenant: 'tenant1' } }
+    let calc = await command('AddNumbers', { number1: 1, number2: 2 }, auth)
+    calc = await command('AddNumbers', { aggregateId: calc.aggregateId, aggregateVersion: calc.aggregateVersion, number1: 3, number2: 4 }, auth)
     calc.aggregateVersion.should.equal(1)
     calc.sum.should.equal(10)
   })
@@ -90,7 +90,7 @@ describe('Basic', () => {
 describe('Many commands', () => {
   it('should accumulate numbers to 1004', async () => {
     const iters = 1004
-    const bus3 = setup().bus
+    const bus3 = setup(CommandMap, false)
     let cmd = Command.create(AddNumbers, { number1: 0, number2: 1 })
     let calc = await bus3.sendCommand(actor1, cmd, Calculator, 'calc9')
     for (let i = 0; i < iters; i++) {

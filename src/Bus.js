@@ -15,6 +15,8 @@ module.exports = class Bus {
     this._name_ = name
   }
 
+  get eventStore () { return this._store_ }
+
   /**
    * Registers event handler with bus
    * @param {Object} handler Event handler

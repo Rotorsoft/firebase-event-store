@@ -1,12 +1,13 @@
 'use strict'
 
-const setup = require('./setup').setup
-const { Bus, Aggregate, Command, FirestoreEventStore, IEventHandler, ERRORS } = require('../index')
+const { Aggregate, Command, IEventHandler, ERRORS } = require('../index')
+const Bus = require('../src/Bus')
+const FirestoreEventStore = require('../src/FirestoreEventStore')
 const IEventStore = require('../src/IEventStore')
 const { Calculator, AddNumbers } = require('./model')
-
-let bus
-let firestore
+const { setup } = require('./setup')
+const bus = setup({}, false)
+const firestore = bus.eventStore._db_
 
 class InvalidAggregate extends Aggregate {
   constructor() {
@@ -93,10 +94,6 @@ describe('Error handling', () => {
 const actor1 = { id: 'user1', tenant: 'tenant1' }
 
 describe('Not implemented', () => {
-  before (() => {
-    ({ bus, firestore } = setup())
-  })
-
   it('should throw not implemented applyEvent', async () => {
     try {
       const store = new FirestoreEventStore(firestore)

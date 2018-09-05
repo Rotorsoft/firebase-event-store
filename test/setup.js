@@ -1,7 +1,4 @@
-const {
-  FirestoreEventStore,
-  Bus,
-} = require('../index')
+const { setup } = require('../index')
 const chai = require('chai')
 
 const firebasemock = require('firebase-mock')
@@ -19,21 +16,13 @@ const mocksdk = new firebasemock.MockFirebaseSdk(
   // use null if your code does not use MESSAGING
   null // () => { return mockmessaging }
 )
-mocksdk.initializeApp()
 mockfirestore.autoFlush()
 
 chai.should()
 
 module.exports = {
-  setup: function (busName) {
-    let evtStore, bus
-    const db = mocksdk.firestore()
-    evtStore = new FirestoreEventStore(db)
-    bus = new Bus(evtStore, busName)
-    return { 
-      evtStore: evtStore,
-      bus: bus,
-      firestore: db
-    }
+  setup: (map, debug) => {
+    mocksdk.apps = []
+    return setup(mocksdk, map, debug)
   }
 }
