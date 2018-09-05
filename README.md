@@ -14,15 +14,10 @@ const {
   Aggregate,
   Command,
   Evento,
-  FirestoreEventStore,
-  Bus,
-  ERRORS
+  ERRORS,
+  setup,
+  command
 } = require('../index')
-
-const firestoreDb = //TODO init firesore db
-const evtStore = new FirestoreEventStore(firestoreDb)
-const bus = new Bus(evtStore)
-bus.addEventHandler(new EventCounter(docStore))
 
 class AddNumbers extends Command {
   validate(_) {
@@ -61,6 +56,10 @@ class Calculator extends Aggregate {
   }
 }
 
+const COMMAND_MAP = {
+  AddNumbers: { commandType: AddNumbers, aggregateType: Calculator }
+}
+
 class EventCounter extends IEventHandler {
   constructor(db) {
     super()
@@ -77,6 +76,10 @@ class EventCounter extends IEventHandler {
     }
   }
 }
+
+const firebase = //TODO get firebase ref
+const bus = setup(firebase, COMMAND_MAP, false)
+bus.addEventHandler(new EventCounter(docStore))
 
 let actor = { id: 'user1', tenant: 'tenant1' }
 let calc = await bus.sendCommand(actor, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc1')
