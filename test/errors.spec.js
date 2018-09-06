@@ -101,7 +101,7 @@ describe('Error handling', () => {
   })
 })
 
-const actor1 = { id: 'user1', tenant: 'tenant1' }
+const actor1 = { id: 'user1', name: 'user1', tenant: 'tenant1', roles: [] }
 
 describe('Not implemented', () => {
   it('should throw not implemented applyEvent', async () => {
@@ -151,7 +151,7 @@ describe('Not implemented', () => {
       const bus = setup2(firebase, [InvalidCommand], false)
     }
     catch(error) {
-      error.message.should.be.equal('invalid arguments: aggregateType')
+      error.message.should.be.equal('precondition error: aggregate InvalidCommand is not subclass of Aggregate')
     }
   })
 

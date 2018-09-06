@@ -2,7 +2,6 @@
 
 const IEventHandler = require('./IEventHandler')
 const IEventStore = require('./IEventStore')
-const Aggregate = require('./Aggregate')
 const Command = require('./Command')
 const ERRORS = require('./errors')
 
@@ -10,26 +9,15 @@ const ERRORS = require('./errors')
  * Event bus - TODO: make it more reliable
  */
 module.exports = class Bus {
-  constructor (store, debug = false) {
+  constructor (store, commands, debug = false) {
     if (!(store instanceof IEventStore)) throw ERRORS.INVALID_ARGUMENTS_ERROR('store')
     this._store_ = store
     this._handlers_ = []
     this._debug_ = debug
-    this._commands_ = {}
+    this._commands_ = commands
   }
 
   get eventStore () { return this._store_ }
-
-  /**
-   * Registers aggregate commands with bus
-   * @param {Aggregate} aggregateType
-   */
-  register (aggregateType) {
-    if (!(aggregateType.prototype instanceof Aggregate)) throw ERRORS.INVALID_ARGUMENTS_ERROR('aggregateType')
-    Object.keys(aggregateType.COMMANDS).forEach(key => {
-      this._commands_[key] = { commandType: aggregateType.COMMANDS[key], aggregateType: aggregateType }
-    })
-  }
 
   /**
    * Registers event handler with bus
@@ -42,11 +30,20 @@ module.exports = class Bus {
 
   /**
    * Executes command, persisting events and latest version of aggregate in store
-   * @param {Object} actor User/Process sending command - must contain tenant and roles
+   * @param {Object} actor User/Process sending command - must contain { id, name, tenant, and roles }
    * @param {String} command Command name - must be registered
    * @param {Object} payload Command payload
    */
   async command (actor, command, payload) {
+    if (!actor) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor')
+    if (!actor.id) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor.id')
+    if (!actor.name) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor.name')
+    if (!actor.tenant) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor.tenant')
+    if (!actor.roles) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor.roles')
+    if (!command) throw ERRORS.MISSING_ARGUMENTS_ERROR('command')
+    if (!payload) throw ERRORS.MISSING_ARGUMENTS_ERROR('payload')
+    if (payload.expectedVersion >= 0 && !payload.aggregateId) throw ERRORS.MISSING_ARGUMENTS_ERROR('payload.aggregateId')
+      
     if (this._debug_) console.log('DEBUG: command', JSON.stringify(payload))
     const map = this._commands_[command]
     if (!map) throw ERRORS.INVALID_ARGUMENTS_ERROR(`command ${command} not found`)

@@ -8,7 +8,7 @@ let bus, firestore
 
 process.on('unhandledRejection', error => { console.log('unhandledRejection', error) })
 
-const actor1 = { id: 'user1', tenant: 'tenant1' }
+const actor1 = { id: 'user1', name: 'user1', tenant: 'tenant1', roles: [] }
 
 describe('Basic', () => {
   before (() => {
@@ -49,10 +49,9 @@ describe('Basic', () => {
   })
 
   it('should accumulate numbers to 10', async () => {
-    const auth = { uid: 'user1', token: { tenant: 'tenant1' } }
     let calc 
-    calc = await command('AddNumbers', { number1: 1, number2: 2 }, auth)
-    calc = await command('AddNumbers', { aggregateId: calc.aggregateId, aggregateVersion: calc.aggregateVersion, number1: 3, number2: 4 }, auth)
+    calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2 })
+    calc = await bus.command(actor1, 'AddNumbers', { aggregateId: calc.aggregateId, aggregateVersion: calc.aggregateVersion, number1: 3, number2: 4 })
     calc.aggregateVersion.should.equal(1)
     calc.sum.should.equal(10)
   })
