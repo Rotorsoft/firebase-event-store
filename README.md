@@ -37,6 +37,8 @@ class Calculator extends Aggregate {
   }
 
   get path () { return '/calculators' }
+  static get COMMANDS () { return { AddNumbers } }
+  get EVENTS () { return { NumbersAdded } }
 
   async handleCommand (actor, command) {
     switch (command.constructor) {
@@ -54,10 +56,6 @@ class Calculator extends Aggregate {
         break
     }
   }
-}
-
-const COMMAND_MAP = {
-  AddNumbers: { commandType: AddNumbers, aggregateType: Calculator }
 }
 
 class EventCounter extends IEventHandler {
@@ -78,12 +76,12 @@ class EventCounter extends IEventHandler {
 }
 
 const firebase = //TODO get firebase ref
-const bus = setup(firebase, COMMAND_MAP, false)
+const bus = setup(firebase, [Calculator], false)
 bus.addEventHandler(new EventCounter(docStore))
 
 let actor = { id: 'user1', tenant: 'tenant1' }
-let calc = await bus.sendCommand(actor, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc1')
-calc = await bus.sendCommand(actor, Command.create(AddNumbers, { number1: 3, number2: 4 }), Calculator, calc.aggregateId, calc.aggregateVersion)
+let calc = await bus.command(actor, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })
+calc = await bus.command(actor, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
 console.log(calc.sum)
 ```
 

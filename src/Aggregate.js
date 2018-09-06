@@ -26,7 +26,21 @@ module.exports = class Aggregate {
 
   get aggregateId () { return this._aggregate_id_ }
   get aggregateVersion () { return this._aggregate_version_ }
+
+  /**
+   * Path to collection storing this type of aggregate
+   */
   get path () { throw ERRORS.NOT_IMPLEMENTED_ERROR('path') }
+
+  /**
+   * Gets object map of command types this aggregate can handle
+   */
+  static get COMMANDS () { throw ERRORS.NOT_IMPLEMENTED_ERROR('COMMANDS') }
+
+  /**
+   * Gets object map of event types this aggregate can apply
+   */
+  get EVENTS () { throw ERRORS.NOT_IMPLEMENTED_ERROR('EVENTS') }
 
   /**
    * Abstract async method that must be implemented by aggregates to handle commands
@@ -43,11 +57,10 @@ module.exports = class Aggregate {
 
   /**
    * Loads stored event object when loading aggregate from events history
-   * @param {Object} eventTypes All event types this aggregate can handle as properties
    * @param {Object} eventObject Stored event object
    */
-  loadEvent (eventTypes, eventObject) {
-    const eventType = eventTypes[eventObject._event_name_]
+  loadEvent (eventObject) {
+    const eventType = this.EVENTS[eventObject._event_name_]
     if (!eventType) throw ERRORS.PRECONDITION_ERROR('Invalid event type: '.concat(eventObject._event_name_))
     const event = Evento.create(eventObject._event_creator_, eventType, eventObject)
     this.applyEvent(event)

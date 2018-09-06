@@ -1,4 +1,5 @@
 const { setup } = require('../index')
+const { Calculator } = require('./model')
 const chai = require('chai')
 
 const firebasemock = require('firebase-mock')
@@ -21,8 +22,9 @@ mockfirestore.autoFlush()
 chai.should()
 
 module.exports = {
-  setup: (map, debug) => {
+  setup: (debug) => {
     mocksdk.apps = []
-    return setup(mocksdk, map, debug)
-  }
+    return setup(mocksdk, [Calculator], debug)
+  },
+  firebase: mocksdk
 }

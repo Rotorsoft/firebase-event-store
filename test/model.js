@@ -23,7 +23,9 @@ class Calculator extends Aggregate {
     this.sum = 0
   }
 
-  get path () { return '/calculators' } 
+  get path () { return '/calculators' }
+  static get COMMANDS () { return { AddNumbers } }
+  get EVENTS () { return { NumbersAdded } }
 
   async handleCommand (actor, command) {
     switch (command.constructor) {
@@ -41,10 +43,6 @@ class Calculator extends Aggregate {
         break
     }
   }
-}
-
-const CommandMap = {
-  AddNumbers: { commandType: AddNumbers, aggregateType: Calculator }
 }
 
 class EventCounter extends IEventHandler {
@@ -66,8 +64,5 @@ class EventCounter extends IEventHandler {
 
 module.exports = {
   Calculator,
-  AddNumbers,
-  NumbersAdded,
-  EventCounter,
-  CommandMap
+  EventCounter
 }

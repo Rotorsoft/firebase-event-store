@@ -4,21 +4,30 @@ const { Aggregate, Command, IEventHandler, ERRORS } = require('../index')
 const Bus = require('../src/Bus')
 const FirestoreEventStore = require('../src/FirestoreEventStore')
 const IEventStore = require('../src/IEventStore')
-const { Calculator, AddNumbers } = require('./model')
-const { setup } = require('./setup')
-const bus = setup({}, false)
+const { Calculator } = require('./model')
+const { setup, firebase } = require('./setup')
+const setup2 = require('../index').setup
+const bus = setup(false)
 const firestore = bus.eventStore._db_
 
 class InvalidAggregate extends Aggregate {
   constructor() {
     super()
   }
+
+  get path () { return '/invalids' }
+  
+  static get COMMANDS () { return { InvalidCommand } }
 }
 
 class InvalidAggregate2 extends Aggregate {
   constructor() {
     super()
   }
+
+  get path () { return '/invalids' }
+
+  static get COMMANDS () { return { InvalidCommand } }
 
   handleCommand (actor, command) {
     this.addEvent(actor, InvalidAggregate, {})
@@ -31,6 +40,7 @@ class InvalidCommand extends Command {
   constructor() {
     super()
   }
+  validate() {}
 }
 
 class InvalidCommand2 extends Command {
@@ -96,10 +106,9 @@ const actor1 = { id: 'user1', tenant: 'tenant1' }
 describe('Not implemented', () => {
   it('should throw not implemented applyEvent', async () => {
     try {
-      const store = new FirestoreEventStore(firestore)
-      const bus = new Bus(store)
+      const bus = setup(false)
       bus.addEventHandler(new InvalidHandler())
-      await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc22')
+      await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.message.should.be.equal('not implemented: applyEvent')
@@ -108,9 +117,8 @@ describe('Not implemented', () => {
 
   it('should throw not implemented handleCommand', async () => {
     try {
-      const store = new FirestoreEventStore(firestore)
-      const bus = new Bus(store)
-      await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), InvalidAggregate)
+      const bus = setup2(firebase, [InvalidAggregate], false)
+      await bus.command(actor1, 'InvalidCommand', { number1: 1, number2: 2 })
     }
     catch(error) { 
       error.message.should.be.equal('not implemented: handleCommand')
@@ -119,10 +127,9 @@ describe('Not implemented', () => {
 
   it('should throw not implemented applyEvent', async () => {
     try {
-      const store = new FirestoreEventStore(firestore)
-      const bus = new Bus(store)
+      const bus = setup2(firebase, [InvalidAggregate], false)
       InvalidAggregate.prototype.handleCommand = Calculator.prototype.handleCommand
-      await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), InvalidAggregate)
+      await bus.command(actor1, 'InvalidCommand', { number1: 1, number2: 2 })
     }
     catch(error) { 
       error.message.should.be.equal('not implemented: applyEvent')
@@ -131,9 +138,8 @@ describe('Not implemented', () => {
 
   it('should throw invalid arguments eventType', async () => {
     try {
-      const store = new FirestoreEventStore(firestore)
-      const bus = new Bus(store)
-      await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), InvalidAggregate2)
+      const bus = setup2(firebase, [InvalidAggregate2], false)
+      await bus.command(actor1, 'InvalidCommand', { number1: 1, number2: 2 })
     }
     catch(error) { 
       error.message.should.be.equal('invalid arguments: eventType')
@@ -142,9 +148,7 @@ describe('Not implemented', () => {
 
   it('should throw invalid arguments aggregateType', async () => {
     try {
-      const store = new FirestoreEventStore(firestore)
-      const bus = new Bus(store)
-      await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), InvalidCommand)
+      const bus = setup2(firebase, [InvalidCommand], false)
     }
     catch(error) {
       error.message.should.be.equal('invalid arguments: aggregateType')
@@ -184,29 +188,6 @@ describe('Not implemented', () => {
     }
     catch(error) {
       error.message.should.equal('precondition error: a must be greater than b')
-    }
-  })
-  
-  it('should throw not implemented event store loadAggregate', async () => {
-    try {
-      const store = new InvalidEventStore()
-      const bus = new Bus(store)
-      await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc1')
-    }
-    catch(error) { 
-      error.message.should.be.equal('not implemented: loadAggregateFromSnapshot')
-    }
-  })
-
-  it('should throw not implemented event store commitAggregate', async () => {
-    try {
-      const store = new FirestoreEventStore(firestore)
-      delete FirestoreEventStore.prototype.commitAggregate
-      const bus = new Bus(store)
-      await bus.sendCommand(actor1, Command.create(AddNumbers, { number1: 1, number2: 2 }), Calculator, 'calc1')
-    }
-    catch(error) {
-      error.message.should.be.equal('not implemented: commitAggregate')
     }
   })
 })

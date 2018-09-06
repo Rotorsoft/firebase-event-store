@@ -20,10 +20,9 @@ module.exports = class IEventStore {
    * @param {String} tenant tenant id
    * @param {Aggregate} aggregateType aggregate subtype
    * @param {String} aggregateId aggregate id
-   * @param {Object} eventTypes dictionary of event types used to re-create the events
    * @returns Promise with loaded aggregate
    */
-  async loadAggregateFromEvents (tenant, aggregateType, aggregateId, eventTypes) { throw ERRORS.NOT_IMPLEMENTED_ERROR('loadAggregateFromEvents') }
+  async loadAggregateFromEvents (tenant, aggregateType, aggregateId) { throw ERRORS.NOT_IMPLEMENTED_ERROR('loadAggregateFromEvents') }
 
   /**
    * Commits pending events to store

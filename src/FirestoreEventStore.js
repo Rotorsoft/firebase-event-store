@@ -27,12 +27,12 @@ module.exports = class FirestoreEventStore extends IEventStore {
     return aggregate
   }
 
-  async loadAggregateFromEvents (tenant, aggregateType, aggregateId, eventTypes) {
+  async loadAggregateFromEvents (tenant, aggregateType, aggregateId) {
     const aggregate = Aggregate.create(this, aggregateType, aggregateId)
     const aggregatePath = '/tenants/'.concat(tenant, aggregate.path, '/', aggregateId)
     const snap = await this._db_.doc(aggregatePath).collection('events').get()
     snap.forEach(doc => {
-      aggregate.loadEvent(eventTypes, doc.data())
+      aggregate.loadEvent(doc.data())
     })
     return aggregate
   }
