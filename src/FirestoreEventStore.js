@@ -2,7 +2,7 @@
 
 const IEventStore = require('./IEventStore')
 const Aggregate = require('./Aggregate')
-const Errors = require('./errors')
+const Errors = require('./Errors')
 
 /**
  * Basic firestore implementation of IEventStore

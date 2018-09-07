@@ -1,6 +1,6 @@
 'use strict'
 
-const Errors = require('./errors')
+const Errors = require('./Errors')
 
 /**
  * EventStore interface

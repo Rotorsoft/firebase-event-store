@@ -2,7 +2,7 @@
 
 const IEventHandler = require('./IEventHandler')
 const IEventStore = require('./IEventStore')
-const Errors = require('./errors')
+const Errors = require('./Errors')
 
 module.exports = class Bus {
   /**

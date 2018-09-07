@@ -1,6 +1,6 @@
 'use strict'
 
-const Errors = require('./errors')
+const Errors = require('./Errors')
 
 /**
  * EventHandler interface to be implemented by manager processes subscribed to event bus

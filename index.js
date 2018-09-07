@@ -4,7 +4,7 @@ const FirestoreEventStore = require('./src/FirestoreEventStore')
 const IEventHandler = require('./src/IEventHandler')
 const Aggregate = require('./src/Aggregate')
 const Bus = require('./src/Bus')
-const Errors = require('./src/errors')
+const Errors = require('./src/Errors')
 
 let _bus_
 
