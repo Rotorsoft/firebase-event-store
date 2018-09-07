@@ -13,8 +13,9 @@
   },
   "keywords": [
     "firebase",
+    "CQRS",
     "event",
-    "store",
+    "sourcing",
     "firestore"
   ],
   "author": {

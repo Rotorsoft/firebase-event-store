@@ -2,15 +2,18 @@
 
 const IEventHandler = require('./IEventHandler')
 const IEventStore = require('./IEventStore')
-const Command = require('./Command')
-const ERRORS = require('./errors')
+const Errors = require('./errors')
 
-/**
- * Event bus - TODO: make it more reliable
- */
 module.exports = class Bus {
+  /**
+   * Bus constructor
+   * 
+   * @param {IEventStore} store 
+   * @param {Object} commands object mapping command names to aggregate types
+   * @param {Boolean} debug flag to debug the bus 
+   */
   constructor (store, commands, debug = false) {
-    if (!(store instanceof IEventStore)) throw ERRORS.INVALID_ARGUMENTS_ERROR('store')
+    if (!(store instanceof IEventStore)) throw Errors.invalidArguments('store')
     this._store_ = store
     this._handlers_ = []
     this._debug_ = debug
@@ -21,52 +24,55 @@ module.exports = class Bus {
 
   /**
    * Registers event handler with bus
-   * @param {Object} handler Event handler
+   * @param {IEventHandler} handler Event handler
    */
   addEventHandler (handler) {
-    if (!(handler instanceof IEventHandler)) throw ERRORS.INVALID_ARGUMENTS_ERROR('handler')
+    if (!(handler instanceof IEventHandler)) throw Errors.invalidArguments('handler')
     this._handlers_.push(handler)
   }
 
   /**
-   * Executes command, persisting events and latest version of aggregate in store
+   * Executes command
+   * 
    * @param {Object} actor User/Process sending command - must contain { id, name, tenant, and roles }
-   * @param {String} command Command name - must be registered
-   * @param {Object} payload Command payload
+   * @param {String} command Command name - must be registered in commands map
+   * @param {Object} payload
    */
-  async command (actor, command, payload) {
-    if (!actor) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor')
-    if (!actor.id) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor.id')
-    if (!actor.name) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor.name')
-    if (!actor.tenant) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor.tenant')
-    if (!actor.roles) throw ERRORS.MISSING_ARGUMENTS_ERROR('actor.roles')
-    if (!command) throw ERRORS.MISSING_ARGUMENTS_ERROR('command')
-    if (!payload) throw ERRORS.MISSING_ARGUMENTS_ERROR('payload')
-    if (payload.expectedVersion >= 0 && !payload.aggregateId) throw ERRORS.MISSING_ARGUMENTS_ERROR('payload.aggregateId')
-      
-    if (this._debug_) console.log('DEBUG: command', JSON.stringify(payload))
-    const map = this._commands_[command]
-    if (!map) throw ERRORS.INVALID_ARGUMENTS_ERROR(`command ${command} not found`)
+  async command (actor, command, { aggregateId = '', expectedVersion = -1, ...payload } = {}) {
+    if (this._debug_) console.log(`DEBUG: actor ${JSON.stringify(actor)} sent ${command}(${aggregateId}.${expectedVersion})`, JSON.stringify(payload))
 
-    const cmd = Command.create(map.commandType, payload)
-    let aggregate = await this._store_.loadAggregateFromSnapshot(actor.tenant, map.aggregateType, payload.aggregateId)
+    // validate arguments
+    if (!actor) throw Errors.missingArguments('actor')
+    if (!actor.id) throw Errors.missingArguments('actor.id')
+    if (!actor.name) throw Errors.missingArguments('actor.name')
+    if (!actor.tenant) throw Errors.missingArguments('actor.tenant')
+    if (!actor.roles) throw Errors.missingArguments('actor.roles')
+    if (!command) throw Errors.missingArguments('command')
+    if (expectedVersion >= 0 && !aggregateId) throw Errors.missingArguments('aggregateId')
+    
+    // get aggregate type from commands map
+    const aggregateType = this._commands_[command]
+    if (!aggregateType) throw Errors.invalidArguments(`command ${command} not found`)
+
+    // load latest aggregate snapshot
+    let aggregate = await this._store_.loadAggregateFromSnapshot(actor.tenant, aggregateType, aggregateId)
     if (this._debug_) console.log('DEBUG: after load', JSON.stringify(aggregate))
+  
+    // handle command
+    await aggregate.commands[command](actor, payload)
 
-    let expectedVersion = payload.expectedVersion
-    if (typeof expectedVersion === 'undefined') {
-      // adjust expectedVersion - when aggregate found, assume latest version
-      if (aggregate._aggregate_version_ >= 0) expectedVersion = aggregate._aggregate_version_
-      else expectedVersion = -1
-    }
+    // assume user wants to act on latest version when not provided
+    if (expectedVersion === -1) expectedVersion = aggregate._aggregate_version_
 
-    await aggregate.handleCommand(actor, cmd)
+    // commit events
     aggregate = await this._store_.commitAggregate(actor.tenant, aggregate, expectedVersion)
     if (this._debug_) console.log('DEBUG: after commit - ', JSON.stringify(aggregate))
 
     // handle uncommited events
     for(let handler of this._handlers_) {
       for(let event of aggregate._uncommitted_events_) {
-        await handler.applyEvent(actor, event, aggregate)
+        const eh = handler.events[event._event_name_]
+        if (eh) await eh(actor, aggregate)
       }
     }
     aggregate._uncommitted_events_ = []

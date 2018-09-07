@@ -1,6 +1,5 @@
 'use strict'
 
-const { command } = require('../index')
 const { setup } = require('./setup')
 const { Calculator, EventCounter } = require('./model')
 
@@ -25,7 +24,6 @@ describe('Basic', () => {
     let counter = await firestore.doc('/counters/counter1').get()
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)
-    calc.creator.should.equal('user1')
     counter.data().eventCount.should.equal(3)
   })
 
@@ -37,7 +35,6 @@ describe('Basic', () => {
     calc = await bus.eventStore.loadAggregateFromEvents(actor1.tenant, Calculator, calc.aggregateId)
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)
-    calc.creator.should.equal('user1')
   })
 
   it('should accumulate numbers to 3 with system generated id', async () => {
@@ -45,7 +42,6 @@ describe('Basic', () => {
     calculator.aggregateVersion.should.equal(0)
     calculator.aggregateId.length.should.be.at.least(10)
     calculator.sum.should.equal(3)
-    calculator.creator.should.equal('user1')
   })
 
   it('should accumulate numbers to 10', async () => {

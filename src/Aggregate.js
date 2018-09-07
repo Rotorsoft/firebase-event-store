@@ -1,7 +1,6 @@
 'use strict'
 
-const Evento = require('./Evento')
-const ERRORS = require('./errors')
+const Errors = require('./errors')
 
 /**
  * Aggregate base abstract class
@@ -11,14 +10,15 @@ module.exports = class Aggregate {
    * Aggregate factory method
    * @param {Object} store Store where aggregate is created
    * @param {Object} aggregateType subclass of Aggregate
-   * @param {String} aggregateId
-   * @returns {Aggregate} Aggregate instance of aggregateType
+   * @param {Object} object with optional payload attributes including _aggregate_id_ and _aggregate_version_
+   * @returns {Aggregate} instance of aggregateType
    */
-  static create (store, aggregateType, aggregateId = '') {
-    if (!(aggregateType.prototype instanceof Aggregate)) throw ERRORS.INVALID_ARGUMENTS_ERROR('aggregateType')
-    let aggregate = new aggregateType.prototype.constructor()
-    Object.defineProperty(aggregate, '_aggregate_id_', { value: aggregateId, writable: !aggregateId, enumerable: true }) 
-    Object.defineProperty(aggregate, '_aggregate_version_', { value: -1, writable: true, enumerable: true })
+  static create (store, aggregateType, { _aggregate_id_ = '', _aggregate_version_ = -1, ...payload } = {}) {
+    if (!(aggregateType.prototype instanceof Aggregate)) throw Errors.invalidArguments('aggregateType')
+    const aggregate = new aggregateType.prototype.constructor()
+    Object.assign(aggregate, payload)
+    Object.defineProperty(aggregate, '_aggregate_id_', { value: _aggregate_id_, writable: !_aggregate_id_, enumerable: true }) 
+    Object.defineProperty(aggregate, '_aggregate_version_', { value: _aggregate_version_, writable: true, enumerable: true })
     Object.defineProperty(aggregate, '_uncommitted_events_', { value: [], writable: true, enumerable: false })
     Object.defineProperty(aggregate, '_store_', { value: store, writable: false, enumerable: false })
     return aggregate
@@ -30,53 +30,39 @@ module.exports = class Aggregate {
   /**
    * Path to collection storing this type of aggregate
    */
-  get path () { throw ERRORS.NOT_IMPLEMENTED_ERROR('path') }
+  static get path () { throw Errors.notImplemented('path') }
 
   /**
-   * Gets object map of command types this aggregate can handle
+   * Object map of async command handlers receiving actor and payload arguments
    */
-  static get COMMANDS () { throw ERRORS.NOT_IMPLEMENTED_ERROR('COMMANDS') }
+  get commands () { throw Errors.notImplemented('commands') }
 
   /**
-   * Gets object map of event types this aggregate can apply
+   * Object map of event handlers receiving event argument
    */
-  get EVENTS () { throw ERRORS.NOT_IMPLEMENTED_ERROR('EVENTS') }
+  get events () { throw Errors.notImplemented('events') }
 
   /**
-   * Abstract async method that must be implemented by aggregates to handle commands
-   * @param {Object} actor User/Process sending command
-   * @param {Command} command 
+   * Loads event object when replaying aggregate
+   * @param {Object} event object including _event_creator_ and _event_name_
    */
-  async handleCommand (actor, command) { throw ERRORS.NOT_IMPLEMENTED_ERROR('handleCommand') }
-
-  /**
-   * Abstract method that must be implemented by aggregates to apply events
-   * @param {Evento} event 
-   */
-  applyEvent (event) { throw ERRORS.NOT_IMPLEMENTED_ERROR('applyEvent') }
-
-  /**
-   * Loads stored event object when loading aggregate from events history
-   * @param {Object} eventObject Stored event object
-   */
-  loadEvent (eventObject) {
-    const eventType = this.EVENTS[eventObject._event_name_]
-    if (!eventType) throw ERRORS.PRECONDITION_ERROR('Invalid event type: '.concat(eventObject._event_name_))
-    const event = Evento.create(eventObject._event_creator_, eventType, eventObject)
-    this.applyEvent(event)
+  loadEvent (event) {
+    this.events[event._event_name_](event)
     this._aggregate_version_++
   }
 
   /**
    * Event factory method used by command handlers
    * @param {String} creator actor id creating the event
-   * @param {Object} eventType subclass of Evento
+   * @param {String} name event name
    * @param {Object} payload event payload
    */
-  addEvent (creator, eventType, payload) {
-    const event = Evento.create(creator, eventType, payload)
-    // console.log(`Adding event ${JSON.stringify(event)}`)
-    this.applyEvent(event)
+  addEvent (creator, name, payload) {
+    let event = Object.assign({}, payload)
+    event._event_creator_ = creator
+    event._event_name_ = name
+    event = Object.freeze(event)
+    this.events[name](event)
     this._uncommitted_events_.push(event)
   }
 }

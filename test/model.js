@@ -1,21 +1,9 @@
-const {
-  Aggregate,
-  Command,
-  Evento,
-  IEventHandler,
-  ERRORS
-} = require('../index')
+const { Aggregate, IEventHandler, Errors } = require('../index')
 
-class AddNumbers extends Command {
-  validate(_) {
-    if (!Number.isInteger(_.number1)) throw ERRORS.INVALID_ARGUMENTS_ERROR('number1')
-    if (!Number.isInteger(_.number2)) throw ERRORS.INVALID_ARGUMENTS_ERROR('number2')
-    this.number1 = _.number1
-    this.number2 = _.number2
-  }
+const EVENTS = {
+  NumbersAdded: 'NumbersAdded',
+  NumbersSubtracted: 'NumbersSubtracted'
 }
-
-class NumbersAdded extends Evento { }
 
 class Calculator extends Aggregate {
   constructor () {
@@ -23,24 +11,31 @@ class Calculator extends Aggregate {
     this.sum = 0
   }
 
-  get path () { return '/calculators' }
-  static get COMMANDS () { return { AddNumbers } }
-  get EVENTS () { return { NumbersAdded } }
+  static get path () { return '/calculators' }
 
-  async handleCommand (actor, command) {
-    switch (command.constructor) {
-      case AddNumbers:
-        this.addEvent(actor.id, NumbersAdded, { a: command.number1, b: command.number2 })
-        break
+  get commands () { 
+    return { 
+      AddNumbers: async (actor, _) => {
+        if (!Number.isInteger(_.number1)) throw Errors.invalidArguments('number1')
+        if (!Number.isInteger(_.number2)) throw Errors.invalidArguments('number2')
+        this.addEvent(actor.id, EVENTS.NumbersAdded, _)
+      },
+      SubtractNumbers: async (actor, _) => {
+        if (!Number.isInteger(_.number1)) throw Errors.invalidArguments('number1')
+        if (!Number.isInteger(_.number2)) throw Errors.invalidArguments('number2')
+        this.addEvent(actor.id, EVENTS.NumbersSubtracted, _)
+      }
     }
   }
 
-  applyEvent (event) {
-    switch (event.constructor) {
-      case NumbersAdded:
-        this.creator = event.eventCreator
-        this.sum += (event.a + event.b)
-        break
+  get events () {
+    return { 
+      [EVENTS.NumbersAdded]: _ => {
+        this.sum += (_.number1 + _.number2)
+      },
+      [EVENTS.NumbersSubtracted]: _ => {
+        this.sum -= (_.number1 + _.number2)
+      }
     }
   }
 }
@@ -51,15 +46,23 @@ class EventCounter extends IEventHandler {
     this.db = db
   }
 
-  async applyEvent (actor, event, aggregate) {
+  async count () {
     const path = '/counters/counter1'
-    if (event.eventName === NumbersAdded.name) {
-      let snap = await this.db.doc(path).get()
-      let doc = snap.data() || {}
-      doc.eventCount = (doc.eventCount || 0) + 1
-      return await this.db.doc(path).set(doc)
-    }
+    let snap = await this.db.doc(path).get()
+    let doc = snap.data() || {}
+    doc.eventCount = (doc.eventCount || 0) + 1
+    return await this.db.doc(path).set(doc)
   }
+  get events () {
+    return {
+      [EVENTS.NumbersAdded]: async (actor, aggregate) => {
+        return await this.count()
+      },
+      [EVENTS.NumbersSubtracted]: async (actor, aggregate) => {
+        return await this.count()
+      }
+    }
+  } 
 }
 
 module.exports = {

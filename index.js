@@ -1,26 +1,26 @@
 'use strict'
 
+const FirestoreEventStore = require('./src/FirestoreEventStore')
 const IEventHandler = require('./src/IEventHandler')
 const Aggregate = require('./src/Aggregate')
-const Command = require('./src/Command')
-const Evento = require('./src/Evento')
 const Bus = require('./src/Bus')
-const ERRORS = require('./src/errors')
-const FirestoreEventStore = require('./src/FirestoreEventStore')
+const Errors = require('./src/errors')
 
 let _bus_
 
 module.exports = {
   Aggregate,
-  Command,
-  Evento,
   IEventHandler,
-  ERRORS,
+  Errors,
+  /**
+   * Initializes firebase store and creates a bus that can handle all commands in aggregates
+   */
   setup: (firebase, aggregates, debug = false) => {
     console.log('setup')
-    if (!firebase) throw ERRORS.MISSING_ARGUMENTS_ERROR('firebase')
-    if (!firebase.apps) throw ERRORS.INVALID_ARGUMENTS_ERROR('firebase.apps')
-    if (!aggregates || !(aggregates instanceof Array)) throw ERRORS.INVALID_ARGUMENTS_ERROR('aggregates')
+    if (!firebase) throw Errors.missingArguments('firebase')
+    if (!firebase.apps) throw Errors.invalidArguments('firebase.apps')
+    if (!aggregates) throw Errors.missingArguments('aggregates')
+    if (!(aggregates instanceof Array)) throw Errors.invalidArguments('aggregates')
 
     if (!firebase.apps.length) {
       firebase.initializeApp()
@@ -29,11 +29,12 @@ module.exports = {
 
       // build commands map
       const commands = {}
-      aggregates.forEach(a => {
-        if (!(a.prototype instanceof Aggregate)) throw ERRORS.PRECONDITION_ERROR(`aggregate ${a.name} is not subclass of Aggregate`)
-        Object.keys(a.COMMANDS).forEach(key => {
-          commands[key] = { commandType: a.COMMANDS[key], aggregateType: a }
-        })
+      aggregates.forEach(aggregateType => {
+        if (!(aggregateType.prototype instanceof Aggregate)) throw Errors.preconditionError(`${aggregateType.name} is not a subclass of Aggregate`)
+        const aggregate = Aggregate.create(null, aggregateType)
+        for(let command of Object.keys(aggregate.commands)) {
+          commands[command] = aggregateType
+        }
       })
       _bus_ = new Bus(new FirestoreEventStore(firestore), commands, debug)
     }
