@@ -1,6 +1,6 @@
 'use strict'
 
-const Errors = require('./Errors')
+const Err = require('./Err')
 
 module.exports = class IEventStore {
   /**
@@ -10,7 +10,7 @@ module.exports = class IEventStore {
    * @param {String} aggregateId optional aggregate id - if not provided new aggregate is created and nothing is loaded
    * @returns Promise with loaded aggregate
    */
-  async loadAggregateFromSnapshot (tenant, aggregateType, aggregateId = '') { throw Errors.notImplemented('loadAggregateFromSnapshot') }
+  async loadAggregateFromSnapshot (tenant, aggregateType, aggregateId = '') { throw Err.notImplemented('loadAggregateFromSnapshot') }
 
     /**
    * Loads aggregate from stored events history
@@ -19,7 +19,7 @@ module.exports = class IEventStore {
    * @param {String} aggregateId aggregate id
    * @returns Promise with loaded aggregate
    */
-  async loadAggregateFromEvents (tenant, aggregateType, aggregateId) { throw Errors.notImplemented('loadAggregateFromEvents') }
+  async loadAggregateFromEvents (tenant, aggregateType, aggregateId) { throw Err.notImplemented('loadAggregateFromEvents') }
 
   /**
    * Commits pending events to store
@@ -28,5 +28,5 @@ module.exports = class IEventStore {
    * @param {int} expectedVersion expected version in store for concurrency check
    * @returns Promise with updated aggregate
    */
-  async commitAggregate (tenant, aggregate, expectedVersion = -1) { throw Errors.notImplemented('commitAggregate') }
+  async commitAggregate (tenant, aggregate, expectedVersion = -1) { throw Err.notImplemented('commitAggregate') }
 }

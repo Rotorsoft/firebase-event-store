@@ -1,6 +1,6 @@
 'use strict'
 
-const Errors = require('./Errors')
+const Err = require('./Err')
 
 module.exports = class Aggregate {
   /**
@@ -11,7 +11,7 @@ module.exports = class Aggregate {
    * @returns {Aggregate} instance of aggregateType
    */
   static create (store, aggregateType, { _aggregate_id_ = '', _aggregate_version_ = -1, ...payload } = {}) {
-    if (!(aggregateType.prototype instanceof Aggregate)) throw Errors.invalidArguments('aggregateType')
+    if (!(aggregateType.prototype instanceof Aggregate)) throw Err.invalidArguments('aggregateType')
     const aggregate = new aggregateType.prototype.constructor()
     Object.assign(aggregate, payload)
     Object.defineProperty(aggregate, '_aggregate_id_', { value: _aggregate_id_, writable: !_aggregate_id_, enumerable: true }) 
@@ -27,17 +27,17 @@ module.exports = class Aggregate {
   /**
    * Path to collection storing this type of aggregate
    */
-  static get path () { throw Errors.notImplemented('path') }
+  static get path () { throw Err.notImplemented('path') }
 
   /**
    * Object map of async command handlers receiving actor and payload arguments
    */
-  get commands () { throw Errors.notImplemented('commands') }
+  get commands () { throw Err.notImplemented('commands') }
 
   /**
    * Object map of event handlers receiving event argument
    */
-  get events () { throw Errors.notImplemented('events') }
+  get events () { throw Err.notImplemented('events') }
 
   /**
    * Loads event object when replaying aggregate

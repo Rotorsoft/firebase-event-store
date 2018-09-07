@@ -2,7 +2,7 @@
 
 const IEventStore = require('./IEventStore')
 const Aggregate = require('./Aggregate')
-const Errors = require('./Errors')
+const Err = require('./Err')
 
 module.exports = class FirestoreEventStore extends IEventStore {
   constructor (db) {
@@ -32,7 +32,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
 
   async commitAggregate (tenant, aggregate, expectedVersion = -1) {
     if (aggregate.aggregateVersion !== expectedVersion) {
-      throw Errors.concurrencyError()
+      throw Err.concurrencyError()
     }
     
     const aggregateObject = Object.assign({}, aggregate) // change prototype to Object for firestore
@@ -72,7 +72,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
       return aggregate
     }
     catch(error) {
-      throw Errors.concurrencyError() 
+      throw Err.concurrencyError() 
     }
   }
 }

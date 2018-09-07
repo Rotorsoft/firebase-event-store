@@ -1,4 +1,4 @@
-const { Aggregate, IEventHandler, Errors } = require('../index')
+const { Aggregate, IEventHandler, Err } = require('../index')
 
 const EVENTS = {
   NumbersAdded: 'NumbersAdded',
@@ -16,13 +16,13 @@ class Calculator extends Aggregate {
   get commands () { 
     return { 
       AddNumbers: async (actor, _) => {
-        if (!Number.isInteger(_.number1)) throw Errors.invalidArguments('number1')
-        if (!Number.isInteger(_.number2)) throw Errors.invalidArguments('number2')
+        if (!Number.isInteger(_.number1)) throw Err.invalidArguments('number1')
+        if (!Number.isInteger(_.number2)) throw Err.invalidArguments('number2')
         this.addEvent(actor.id, EVENTS.NumbersAdded, _)
       },
       SubtractNumbers: async (actor, _) => {
-        if (!Number.isInteger(_.number1)) throw Errors.invalidArguments('number1')
-        if (!Number.isInteger(_.number2)) throw Errors.invalidArguments('number2')
+        if (!Number.isInteger(_.number1)) throw Err.invalidArguments('number1')
+        if (!Number.isInteger(_.number2)) throw Err.invalidArguments('number2')
         this.addEvent(actor.id, EVENTS.NumbersSubtracted, _)
       }
     }

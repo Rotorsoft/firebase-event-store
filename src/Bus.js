@@ -2,7 +2,7 @@
 
 const IEventHandler = require('./IEventHandler')
 const IEventStore = require('./IEventStore')
-const Errors = require('./Errors')
+const Err = require('./Err')
 
 module.exports = class Bus {
   /**
@@ -13,7 +13,7 @@ module.exports = class Bus {
    * @param {Boolean} debug flag to debug the bus 
    */
   constructor (store, commands, debug = false) {
-    if (!(store instanceof IEventStore)) throw Errors.invalidArguments('store')
+    if (!(store instanceof IEventStore)) throw Err.invalidArguments('store')
     this._store_ = store
     this._handlers_ = []
     this._debug_ = debug
@@ -27,7 +27,7 @@ module.exports = class Bus {
    * @param {IEventHandler} handler Event handler
    */
   addEventHandler (handler) {
-    if (!(handler instanceof IEventHandler)) throw Errors.invalidArguments('handler')
+    if (!(handler instanceof IEventHandler)) throw Err.invalidArguments('handler')
     this._handlers_.push(handler)
   }
 
@@ -42,17 +42,17 @@ module.exports = class Bus {
     if (this._debug_) console.log(`DEBUG: actor ${JSON.stringify(actor)} sent ${command}(${aggregateId}.${expectedVersion})`, JSON.stringify(payload))
 
     // validate arguments
-    if (!actor) throw Errors.missingArguments('actor')
-    if (!actor.id) throw Errors.missingArguments('actor.id')
-    if (!actor.name) throw Errors.missingArguments('actor.name')
-    if (!actor.tenant) throw Errors.missingArguments('actor.tenant')
-    if (!actor.roles) throw Errors.missingArguments('actor.roles')
-    if (!command) throw Errors.missingArguments('command')
-    if (expectedVersion >= 0 && !aggregateId) throw Errors.missingArguments('aggregateId')
+    if (!actor) throw Err.missingArguments('actor')
+    if (!actor.id) throw Err.missingArguments('actor.id')
+    if (!actor.name) throw Err.missingArguments('actor.name')
+    if (!actor.tenant) throw Err.missingArguments('actor.tenant')
+    if (!actor.roles) throw Err.missingArguments('actor.roles')
+    if (!command) throw Err.missingArguments('command')
+    if (expectedVersion >= 0 && !aggregateId) throw Err.missingArguments('aggregateId')
     
     // get aggregate type from commands map
     const aggregateType = this._commands_[command]
-    if (!aggregateType) throw Errors.invalidArguments(`command ${command} not found`)
+    if (!aggregateType) throw Err.invalidArguments(`command ${command} not found`)
 
     // load latest aggregate snapshot
     let aggregate = await this._store_.loadAggregateFromSnapshot(actor.tenant, aggregateType, aggregateId)

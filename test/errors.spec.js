@@ -9,7 +9,7 @@ const setup2 = require('../index').setup
 const bus = setup(false)
 const firestore = bus.eventStore._db_
 
-describe('Error handling', () => {
+describe('Err handling', () => {
   it('should throw invalid arguments: store', async () => {
     try {
       let bus2 = new Bus(new Object())
