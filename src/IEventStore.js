@@ -2,9 +2,6 @@
 
 const Errors = require('./Errors')
 
-/**
- * EventStore interface
- */
 module.exports = class IEventStore {
   /**
    * Loads aggregate from stored snapshot

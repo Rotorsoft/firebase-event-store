@@ -2,9 +2,6 @@
 
 const Errors = require('./Errors')
 
-/**
- * Aggregate base abstract class
- */
 module.exports = class Aggregate {
   /**
    * Aggregate factory method

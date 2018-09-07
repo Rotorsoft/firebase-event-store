@@ -4,9 +4,6 @@ const IEventStore = require('./IEventStore')
 const Aggregate = require('./Aggregate')
 const Errors = require('./Errors')
 
-/**
- * Basic firestore implementation of IEventStore
- */
 module.exports = class FirestoreEventStore extends IEventStore {
   constructor (db) {
     super()
