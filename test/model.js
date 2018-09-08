@@ -12,6 +12,7 @@ class Calculator extends Aggregate {
   }
 
   static get path () { return '/calculators' }
+  static get maxEvents () { return 15 }
 
   get commands () { 
     return { 
@@ -56,9 +57,6 @@ class EventCounter extends IEventHandler {
   get events () {
     return {
       [EVENTS.NumbersAdded]: async (actor, aggregate) => {
-        return await this.count()
-      },
-      [EVENTS.NumbersSubtracted]: async (actor, aggregate) => {
         return await this.count()
       }
     }

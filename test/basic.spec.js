@@ -38,8 +38,10 @@ describe('Basic', () => {
   })
 
   it('should accumulate numbers to 3 with system generated id', async () => {
-    let calculator = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2 })
-    calculator.aggregateVersion.should.equal(0)
+    let calculator
+    calculator = await bus.command(actor1, 'AddNumbers', { number1: 2, number2: 2 })
+    calculator = await bus.command(actor1, 'SubtractNumbers', { aggregateId: calculator.aggregateId, number1: 1, number2: 0 })
+    calculator.aggregateVersion.should.equal(1)
     calculator.aggregateId.length.should.be.at.least(10)
     calculator.sum.should.equal(3)
   })
@@ -66,14 +68,28 @@ describe('Basic', () => {
 })
 
 describe('Many commands', () => {
-  it('should accumulate numbers to 1004', async () => {
-    const iters = 1004
-    const bus3 = setup(false)
+  it('should accumulate numbers to 12', async () => {
+    const iters = 12
+    const bus3 = setup(true)
     let calc = await bus3.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: 'calc9' })
     for (let i = 0; i < iters; i++) {
       calc = await bus3.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
     }
     calc.aggregateVersion.should.equal(iters)
     calc.sum.should.equal(iters + 1)
+  })
+
+  it('should throw precondition error: max events reached', async () => {
+    try {
+      const iters = 16
+      const bus3 = setup(true)
+      let calc = await bus3.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: 'calc9' })
+      for (let i = 0; i < iters; i++) {
+        calc = await bus3.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
+      }
+    }
+    catch(error) {
+      error.message.should.be.equal('precondition error: max events reached')
+    }
   })
 })

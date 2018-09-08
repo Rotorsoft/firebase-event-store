@@ -72,7 +72,7 @@ module.exports = class Bus {
     for(let handler of this._handlers_) {
       for(let event of aggregate._uncommitted_events_) {
         const eh = handler.events[event._event_name_]
-        if (eh) await eh(actor, aggregate)
+        if (eh) await eh(actor, aggregate, event)
       }
     }
     aggregate._uncommitted_events_ = []

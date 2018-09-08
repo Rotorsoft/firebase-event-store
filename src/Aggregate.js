@@ -11,7 +11,6 @@ module.exports = class Aggregate {
    * @returns {Aggregate} instance of aggregateType
    */
   static create (store, aggregateType, { _aggregate_id_ = '', _aggregate_version_ = -1, ...payload } = {}) {
-    if (!(aggregateType.prototype instanceof Aggregate)) throw Err.invalidArguments('aggregateType')
     const aggregate = new aggregateType.prototype.constructor()
     Object.assign(aggregate, payload)
     Object.defineProperty(aggregate, '_aggregate_id_', { value: _aggregate_id_, writable: !_aggregate_id_, enumerable: true }) 
@@ -25,17 +24,46 @@ module.exports = class Aggregate {
   get aggregateVersion () { return this._aggregate_version_ }
 
   /**
-   * Path to collection storing this type of aggregate
+   * Path to collection storing this aggregate type
    */
   static get path () { throw Err.notImplemented('path') }
 
   /**
+   * Max number of events supported by this aggregate type
+   */
+  static get maxEvents () { return 10000 }
+
+  /**
    * Object map of async command handlers receiving actor and payload arguments
+   * 
+   * Example:
+   *    get commands () {
+   *      return {
+   *        Command1: async (actor, payload) => {
+   *          ...
+   *        },
+   *        Command2: async (actor, payload) => {
+   *          ...
+   *        }
+   *      }
+   *    }
    */
   get commands () { throw Err.notImplemented('commands') }
 
   /**
    * Object map of event handlers receiving event argument
+   *
+   * Example:
+   *    get events () {
+   *      return {
+   *        ['Event1']: (event) => {
+   *          ...
+   *        },
+   *        ['Event2']: (event) => {
+   *          ...
+   *        }
+   *      }
+   *    }
    */
   get events () { throw Err.notImplemented('events') }
 

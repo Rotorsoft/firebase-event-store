@@ -7,7 +7,19 @@ const Err = require('./Err')
  */
 module.exports = class IEventHandler {
   /**
-   * Object map of async event handlers receiving actor and aggregate arguments 
+   * Object map of async event handlers
+   * 
+   * Example:
+   *    get events () {
+   *      return {
+   *        ['Event1']: async (actor, aggregate, event) => {
+   *          ...
+   *        },
+   *        ['Event2']: async (actor, aggregate, event) => {
+   *          ...
+   *        }
+   *      }
+   *    }
    */
   get events () { throw Err.notImplemented('events') }
 }
