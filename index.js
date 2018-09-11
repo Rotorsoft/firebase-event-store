@@ -16,7 +16,6 @@ module.exports = {
    * Initializes firebase store and creates a bus that can handle all commands in aggregates
    */
   setup: (firebase, aggregates, debug = false) => {
-    console.log('setup')
     if (!firebase) throw Err.missingArguments('firebase')
     if (!firebase.apps) throw Err.invalidArguments('firebase.apps')
     if (!aggregates) throw Err.missingArguments('aggregates')

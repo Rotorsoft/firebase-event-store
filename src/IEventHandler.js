@@ -22,4 +22,12 @@ module.exports = class IEventHandler {
    *    }
    */
   get events () { throw Err.notImplemented('events') }
+
+  /**
+   * Handles pump command
+   * 
+   * @param {Object} actor 
+   * @param {Object} payload 
+   */
+  async pump (actor, payload) {}
 }

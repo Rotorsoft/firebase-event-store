@@ -74,7 +74,14 @@ class EventCounter extends IEventHandler {
         return await this.count()
       }
     }
-  } 
+  }
+  async pump (actor, payload) {
+    const path = '/counters/pumps'
+    let snap = await this.db.doc(path).get()
+    let doc = snap.data() || {}
+    doc.pumpCount = (doc.pumpCount || 0) + 1
+    return await this.db.doc(path).set(doc)
+  }
 }
 
 const firebase = //TODO get firebase ref

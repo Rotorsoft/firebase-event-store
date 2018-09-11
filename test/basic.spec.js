@@ -71,12 +71,18 @@ describe('Many commands', () => {
   it('should accumulate numbers to 12', async () => {
     const iters = 12
     const bus3 = setup(true)
+    firestore = bus.eventStore._db_
+    bus3.addEventHandler(new EventCounter(firestore))
     let calc = await bus3.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: 'calc9' })
     for (let i = 0; i < iters; i++) {
       calc = await bus3.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
+      await bus3.command(actor1, 'pump', {})
     }
     calc.aggregateVersion.should.equal(iters)
     calc.sum.should.equal(iters + 1)
+    const snap = await firestore.doc('/counters/pumps').get()
+    let doc = snap.data()
+    doc.pumpCount.should.equal(iters)
   })
 
   it('should throw precondition error: max events reached', async () => {

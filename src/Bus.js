@@ -32,6 +32,15 @@ module.exports = class Bus {
   }
 
   /**
+   * Pumps all handlers
+   */
+  async pump (actor, payload) {
+    for(let handler of this._handlers_) {
+      await handler.pump(actor, payload)
+    }
+  }
+
+  /**
    * Executes command
    * 
    * @param {Object} actor User/Process sending command - must contain { id, name, tenant, and roles }
@@ -50,6 +59,9 @@ module.exports = class Bus {
     if (!command) throw Err.missingArguments('command')
     if (expectedVersion >= 0 && !aggregateId) throw Err.missingArguments('aggregateId')
     
+    // handle pumps
+    if (command === 'pump') return await this.pump(actor, payload)
+
     // get aggregate type from commands map
     const aggregateType = this._commands_[command]
     if (!aggregateType) throw Err.invalidArguments(`command ${command} not found`)
