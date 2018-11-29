@@ -1,7 +1,5 @@
 'use strict'
 
-const Err = require('./Err')
-
 /**
  * EventHandler interface to be implemented by manager processes subscribed to event bus
  */
@@ -21,7 +19,16 @@ module.exports = class IEventHandler {
    *      }
    *    }
    */
-  get events () { throw Err.notImplemented('events') }
+  get events () { return {} }
+
+  /**
+   * Handles all events. Gets called when no specific event handler is found in map
+   * 
+   * @param {Object} actor 
+   * @param {Object} aggregate
+   * @param {Object} event
+   */
+  async handle (actor, aggregate, event) {}
 
   /**
    * Handles pump command

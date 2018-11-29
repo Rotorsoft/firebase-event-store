@@ -1,7 +1,14 @@
 firebase-event-store [![Build Status](https://travis-ci.org/Rotorsoft/firebase-event-store.svg?branch=master)](https://travis-ci.org/Rotorsoft/firebase-event-store) [![Coverage Status](https://coveralls.io/repos/github/Rotorsoft/firebase-event-store/badge.svg?branch=master)](https://coveralls.io/github/Rotorsoft/firebase-event-store?branch=master)
 =========
 
-Using Firestore as the only storage technology in a fairly simple CQRS solution seems like a very natural compromise. The read side can be easily implemented using out of the box collections and documents that are automatically synchronized with client apps via snapshot listeners. This module tackles a very basic command side event store that supports multi-tenant/role-based apps, storing each aggregate type in their own colletion path, and always keeping the latest snapshot for easy reading. Events are saved inside the aggregate document (events collection).
+Firestore is a very inexpensive Non-SQL serverless platform to persist data in the cloud. Many of my applications follow the CQRS pattern (see Figure 1), so I was curious and decided to use Documents and Collections to model my Event Streams, Aggregate Snapshots, and Projections. After some tinkering with the APIs, and a few beers, the Command Side started to emerge. I decided not to implement the Query Side (always afraid of overengineering) and settled for just listening to the documents holding my aggregate snapshots to present my GUI (a nice out-of-the-box feature in Firestore that allows you to synchronize the client with the store in real-time with minimal coding).
+
+I started this project as a proof of concept, trying to figure out if a low cost (practically free) persistance platform in the cloud could support a couple of mobile applications I developed last year, and so far the results have been very positive. The current store supports multiple tenants as well as multiple event streams within each tenant. There is also a basic event handler to persist Aggregate snapshots that's very useful as a simple read model and efficient after a few hundred events.
+
+This is just a seed, and there is a lot of room for improvement. I would like to see a serverless Pub/Sub messaging solution inside Firebase (not the gcloud one) to refactor the in-memory Bus and make it more scalable. I would also like to revisit the Query Side and explore different types of projection models. In the meantime, I will be deploying more applications.
+
+#### Figure 1 - CQRS Reference Architecture
+![Figure 1](/assets/CQRSArchitecture.PNG)
 
 ## Installation
 
@@ -65,6 +72,7 @@ class EventCounter extends IEventHandler {
     doc.eventCount = (doc.eventCount || 0) + 1
     return await this.db.doc(path).set(doc)
   }
+
   get events () {
     return {
       [EVENTS.NumbersAdded]: async (actor, aggregate) => {
@@ -75,6 +83,7 @@ class EventCounter extends IEventHandler {
       }
     }
   }
+
   async pump (actor, payload) {
     const path = '/counters/pumps'
     let snap = await this.db.doc(path).get()
@@ -85,7 +94,7 @@ class EventCounter extends IEventHandler {
 }
 
 const firebase = //TODO get firebase ref
-const bus = setup(firebase, [Calculator], false)
+const bus = setup(firebase, [Calculator])
 bus.addEventHandler(new EventCounter(docStore))
 
 let actor = { id: 'user1', name: 'actor 1', tenant: 'tenant1', roles: ['manager', 'user'] }

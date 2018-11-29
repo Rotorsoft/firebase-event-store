@@ -1,21 +1,25 @@
 'use strict'
 
-const FirestoreEventStore = require('./src/FirestoreEventStore')
+const IBus = require('./src/IBus')
 const IEventHandler = require('./src/IEventHandler')
+const IEventStore = require('./src/IEventStore')
 const Aggregate = require('./src/Aggregate')
 const Bus = require('./src/Bus')
+const { FirestoreEventStore, FirestoreSnapshooter } = require('./src/FirestoreEventStore')
 const Err = require('./src/Err')
 
 let _bus_
 
 module.exports = {
   Aggregate,
+  IBus,
   IEventHandler,
+  IEventStore,
   Err,
   /**
-   * Initializes firebase store and creates a bus that can handle all commands in aggregates
+   * Initializes firebase store and creates the bus
    */
-  setup: (firebase, aggregates, debug = false) => {
+  setup: (firebase, aggregates, snapshots = true, debug = false) => {
     if (!firebase) throw Err.missingArguments('firebase')
     if (!firebase.apps) throw Err.invalidArguments('firebase.apps')
     if (!aggregates) throw Err.missingArguments('aggregates')
@@ -35,7 +39,11 @@ module.exports = {
           commands[command] = aggregateType
         }
       })
-      _bus_ = new Bus(new FirestoreEventStore(firestore), commands, debug)
+
+      const snapshooter = snapshots ? new FirestoreSnapshooter(firestore) : null
+      const store = new FirestoreEventStore(firestore, snapshooter)
+      _bus_ = new Bus(store, commands, debug)
+      if (snapshooter) _bus_.addEventHandler(snapshooter)
     }
     return _bus_
   }

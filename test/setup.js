@@ -1,8 +1,10 @@
 const { setup } = require('../index')
 const { Calculator } = require('./model')
 const chai = require('chai')
+const _ = require('lodash')
 
 const firebasemock = require('firebase-mock')
+const MockFirestoreQuery = require('firebase-mock/src/firestore-query')
 // const mockauth = new firebasemock.MockAuthentication()
 const mockfirestore = new firebasemock.MockFirestore()
 const mocksdk = new firebasemock.MockFirebaseSdk(
@@ -21,10 +23,42 @@ mockfirestore.autoFlush()
 
 chai.should()
 
+// implement query
+MockFirestoreQuery.prototype.where = function (property, operator, value) {
+  if (_.size(this.data) !== 0) {
+    var results = {};
+    _.forEach(this.data, function(data, key) {
+      switch (operator) {
+        case '==':
+          if (_.isEqual(_.get(data, property), value)) {
+            results[key] = _.cloneDeep(data);
+          }
+          break;
+        case '>':
+          if (_.get(data, property) > value) {
+            results[key] = _.cloneDeep(data);
+          }
+          break;
+        case '>=':
+          if (_.get(data, property) >= value) {
+            results[key] = _.cloneDeep(data);
+          }
+          break;  
+        default:
+          results[key] = _.cloneDeep(data);
+          break;
+      }
+    });
+    return new MockFirestoreQuery(this.path, results, this.parent, this.id);
+  } else {
+    return new MockFirestoreQuery(this.path, null, this.parent, this.id);
+  }
+}
+
 module.exports = {
-  setup: (debug) => {
+  setup: ({ snapshots = true, debug = false } = {}) => {
     mocksdk.apps = []
-    return setup(mocksdk, [Calculator], debug)
+    return setup(mocksdk, [Calculator], snapshots, debug)
   },
   firebase: mocksdk
 }
