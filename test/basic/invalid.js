@@ -1,4 +1,4 @@
-const { Aggregate, IEventHandler, Err } = require('../index')
+const { Aggregate, IEventHandler, Err } = require('../../index')
 
 class InvalidAggregate extends Aggregate {
   constructor() {

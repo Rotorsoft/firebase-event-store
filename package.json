@@ -4,8 +4,8 @@
   "description": "Simple multi-tenant event sourcing store based on firestore",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --reporter spec --timeout 10000 || exit 0",
-    "cover": "istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec --timeout 10000"
+    "test": "mocha ./test/**/*.spec.js --reporter spec --timeout 10000 || exit 0",
+    "cover": "istanbul cover ./node_modules/mocha/bin/_mocha ./test/**/*.spec.js -- -R spec --timeout 10000"
   },
   "repository": {
     "type": "git",
@@ -32,9 +32,9 @@
     "node": ">=8.0.0"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
+    "chai": "^4.2.0",
     "coveralls": "^3.0.2",
-    "firebase-mock": "^2.2.6",
+    "firebase-mock": "^2.2.10",
     "istanbul": "^1.1.0-alpha.1",
     "lodash": "^4.17.11",
     "mocha": "^5.2.0",

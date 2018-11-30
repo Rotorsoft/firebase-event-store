@@ -1,5 +1,4 @@
 const { setup } = require('../index')
-const { Calculator } = require('./model')
 const chai = require('chai')
 const _ = require('lodash')
 
@@ -23,7 +22,7 @@ mockfirestore.autoFlush()
 
 chai.should()
 
-// implement query
+// implement more query operators
 MockFirestoreQuery.prototype.where = function (property, operator, value) {
   if (_.size(this.data) !== 0) {
     var results = {};
@@ -56,9 +55,9 @@ MockFirestoreQuery.prototype.where = function (property, operator, value) {
 }
 
 module.exports = {
-  setup: ({ snapshots = true, debug = false } = {}) => {
+  setup: (aggregates, { snapshots = true, debug = false } = {}) => {
     mocksdk.apps = []
-    return setup(mocksdk, [Calculator], snapshots, debug)
+    return setup(mocksdk, aggregates, snapshots, debug)
   },
   firebase: mocksdk
 }

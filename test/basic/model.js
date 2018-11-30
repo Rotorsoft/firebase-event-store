@@ -1,4 +1,6 @@
-const { Aggregate, IEventHandler, Err } = require('../index')
+'use strict'
+
+const { Aggregate, IEventHandler, Err } = require('../../index')
 
 const EVENTS = {
   NumbersAdded: 'NumbersAdded',
