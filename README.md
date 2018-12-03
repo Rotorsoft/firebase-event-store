@@ -18,6 +18,8 @@ So far the results have been positive. The store supports multiple tenants as we
 
 ## Usage
 
+A trivial aggregate and event handler:
+
 ```javascript
 const { setup, Aggregate, IEventHandler, Err } = require('@rotorsoft/firebase-event-store')
 
@@ -104,6 +106,207 @@ let calc = await bus.command(actor, 'AddNumbers', { number1: 1, number2: 2, aggr
 calc = await bus.command(actor, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
 calc = await bus.command(actor, 'SubtractNumbers', { aggregateId: 'calc1', number1: 1, number2: 1 })
 console.log('calculator', calc)
+```
+
+Let's now pretend that we need to build a real basic calculator and store every single key pressed in a ledger for audit purposes. The calculator aggregate might look like this:
+
+```javascript
+'use strict'
+
+const { Aggregate, Err } = require('../../index')
+
+const OPERATORS = {
+  ['+']: (l, r) => l + r, 
+  ['-']: (l, r) => l - r,
+  ['*']: (l, r) => l * r,
+  ['/']: (l, r) => l / r
+}
+
+const EVENTS = {
+  DigitPressed: 'DigitPressed',
+  DotPressed: 'DotPressed',
+  OperatorPressed: 'OperatorPressed',
+  EqualsPressed: 'EqualsPressed' 
+}
+
+module.exports = class Calculator extends Aggregate {
+  constructor () {
+    super()
+    this.left = '0'
+    this.result = 0
+  }
+
+  static get path () { return '/calculators' }
+  static get maxEvents () { return 100 }
+
+  get commands () { 
+    return { 
+      PressDigit: async (actor, _) => {
+        if (_.digit < '0' || _.digit > '9') throw Err.invalidArguments('digit')
+        this.addEvent(actor.id, EVENTS.DigitPressed, _)
+      },
+      PressDot: async (actor, _) => {
+        this.addEvent(actor.id, EVENTS.DotPressed, _)
+      },
+      PressOperator: async (actor, _) => {
+        if (!Object.keys(OPERATORS).includes(_.operator)) throw Err.invalidArguments('operator')
+        this.addEvent(actor.id, EVENTS.OperatorPressed, _)
+      },
+      PressEquals: async (actor, _) => {
+        this.addEvent(actor.id, EVENTS.EqualsPressed, _)
+      }
+    }
+  }
+
+  get events () {
+    return { 
+      [EVENTS.DigitPressed]: _ => {
+        if (this.operator) {
+          this.right = (this.right || '').concat(_.digit)
+        }
+        else this.left = (this.left || '').concat(_.digit)
+      },
+      [EVENTS.DotPressed]: _ => {
+        if (this.operator) {
+          this.right = (this.right || '').concat('.')
+        }
+        else this.left = (this.left || '').concat('.')
+      },
+      [EVENTS.OperatorPressed]: _ => {
+        if (this.operator) this.compute()
+        this.operator = _.operator
+        this.right = null
+      },
+      [EVENTS.EqualsPressed]: _ => {
+        this.compute()
+      }
+    }
+  }
+
+  compute () {
+    if (!this.left) throw Err.preconditionError('missing left side')
+    if (!this.right) throw Err.preconditionError('missing right side')
+    if (!this.operator) throw Err.preconditionError('missing operator')
+    const l = Number.parseFloat(this.left)
+    const r = Number.parseFloat(this.right)
+    this.result = OPERATORS[this.operator](l, r)
+    this.left = this.result.toString()
+  }
+}
+```
+And we can unit test it with chai:
+
+```javascript
+'use strict'
+
+const Calculator = require('./calculator')
+
+let bus
+
+const actor1 = { id: 'user1', name: 'user1', tenant: 'tenant1', roles: [] }
+
+describe('Calculator basic operations', () => {
+  before (() => {
+    bus = setup([Calculator], { debug: true }) // SEE FULL CHAI AND FIREBASE-MOCK SETUP IN TEST FOLDER
+  })
+
+  async function c (calc, command, payload) {
+    return await bus.command(actor1, command, Object.assign(payload, { aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion }))
+  }
+
+  it('should compute 1+2-3*5=0', async () => {
+    let calc
+    calc = await bus.command(actor1, 'PressDigit', { digit: '1', aggregateId: 'c1' })
+    calc = await c(calc, 'PressOperator', { operator: '+' })
+    calc = await c(calc, 'PressDigit', { digit: '2'})
+    calc = await c(calc, 'PressOperator', { operator: '-' })
+    calc = await c(calc, 'PressDigit', { digit: '3'})
+    calc = await c(calc, 'PressOperator', { operator: '*' })
+    calc = await c(calc, 'PressDigit', { digit: '5' })
+    calc = await c(calc, 'PressEquals', {})
+  
+    calc.result.should.equal(0)
+  })
+
+  it('should compute 4*4+21-16*3=63', async () => {
+    let calc
+    calc = await bus.command(actor1, 'PressDigit', { digit: '4', aggregateId: 'c2' })
+    calc = await c(calc, 'PressOperator', { operator: '*' })
+    calc = await c(calc, 'PressDigit', { digit: '4' })
+    calc = await c(calc, 'PressOperator', { operator: '+' })
+    calc = await c(calc, 'PressDigit', { digit: '2' })
+    calc = await c(calc, 'PressDigit', { digit: '1' })
+    calc = await c(calc, 'PressOperator', { operator: '-' })
+    calc = await c(calc, 'PressDigit', { digit: '1' })
+    calc = await c(calc, 'PressDigit', { digit: '6' })
+    calc = await c(calc, 'PressOperator', { operator: '*' })
+    calc = await c(calc, 'PressDigit', { digit: '3' })
+    calc = await c(calc, 'PressEquals', {})
+  
+    calc.result.should.equal(63)
+  })
+
+  it('should compute 4*4+21-16*3===567', async () => {
+    let calc
+    calc = await bus.command(actor1, 'PressDigit', { digit: '4', aggregateId: 'c3' })
+    calc = await c(calc, 'PressOperator', { operator: '*' })
+    calc = await c(calc, 'PressDigit', { digit: '4' })
+    calc = await c(calc, 'PressOperator', { operator: '+' })
+    calc = await c(calc, 'PressDigit', { digit: '2' })
+    calc = await c(calc, 'PressDigit', { digit: '1' })
+    calc = await c(calc, 'PressOperator', { operator: '-' })
+    calc = await c(calc, 'PressDigit', { digit: '1' })
+    calc = await c(calc, 'PressDigit', { digit: '6' })
+    calc = await c(calc, 'PressOperator', { operator: '*' })
+    calc = await c(calc, 'PressDigit', { digit: '3' })
+    calc = await c(calc, 'PressEquals', {})
+    calc = await c(calc, 'PressEquals', {})
+    calc = await c(calc, 'PressEquals', {})
+  
+    calc.result.should.equal(567)
+  })
+
+  it('should compute 1.5+2.0-11.22+.33=-7.39', async () => {
+    let calc
+    calc = await bus.command(actor1, 'PressDigit', { digit: '1', aggregateId: 'c4' })
+    calc = await c(calc, 'PressDot', {})
+    calc = await c(calc, 'PressDigit', { digit: '5'})    
+    calc = await c(calc, 'PressOperator', { operator: '+' })
+    calc = await c(calc, 'PressDigit', { digit: '2'})
+    calc = await c(calc, 'PressDot', {})
+    calc = await c(calc, 'PressDigit', { digit: '0'})    
+    calc = await c(calc, 'PressOperator', { operator: '-' })
+    calc = await c(calc, 'PressDigit', { digit: '1'})
+    calc = await c(calc, 'PressDigit', { digit: '1'})
+    calc = await c(calc, 'PressDot', {})
+    calc = await c(calc, 'PressDigit', { digit: '2'})
+    calc = await c(calc, 'PressDigit', { digit: '2'})
+    calc = await c(calc, 'PressOperator', { operator: '+' })
+    calc = await c(calc, 'PressDot', {})
+    calc = await c(calc, 'PressDigit', { digit: '3' })
+    calc = await c(calc, 'PressDigit', { digit: '3' })
+    calc = await c(calc, 'PressEquals', {})
+  
+    calc.result.toFixed(2).should.equal('-7.39')
+  })
+
+  it('should compute 5.23/.33*2=31.6969696969697', async () => {
+    let calc
+    calc = await bus.command(actor1, 'PressDigit', { digit: '5', aggregateId: 'c5' })
+    calc = await c(calc, 'PressDot', {})
+    calc = await c(calc, 'PressDigit', { digit: '2'})
+    calc = await c(calc, 'PressDigit', { digit: '3'})   
+    calc = await c(calc, 'PressOperator', { operator: '/' })
+    calc = await c(calc, 'PressDot', {})
+    calc = await c(calc, 'PressDigit', { digit: '3' })
+    calc = await c(calc, 'PressDigit', { digit: '3' })
+    calc = await c(calc, 'PressOperator', { operator: '*' })
+    calc = await c(calc, 'PressDigit', { digit: '2'})
+    calc = await c(calc, 'PressEquals', {})
+  
+    calc.result.should.equal(31.6969696969697)
+  })
+})
 ```
 
 ## Tests
