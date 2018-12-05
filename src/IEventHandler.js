@@ -22,13 +22,16 @@ module.exports = class IEventHandler {
   get events () { return {} }
 
   /**
-   * Handles all events. Gets called when no specific event handler is found in map
+   * Handles events. Invokes specific event handler if found in map
    * 
    * @param {Object} actor 
    * @param {Object} aggregate
    * @param {Object} event
    */
-  async handle (actor, aggregate, event) {}
+  async handle (actor, aggregate, event) {
+    const eh = this.events[event._n]
+    if (eh) await eh(actor, aggregate, event)
+  }
 
   /**
    * Handles pump command

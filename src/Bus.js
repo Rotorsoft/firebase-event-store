@@ -68,14 +68,15 @@ module.exports = class Bus extends IBus {
     aggregate = await this._store_.commitEvents(actor.tenant, aggregate, expectedVersion)
     if (this._debug_) console.log('DEBUG: after commit - ', JSON.stringify(aggregate))
 
+    // in-memory pub/sub - to be replaced with serverless messaging platform for scalability
     // handle commited events
     for(let handler of this._handlers_) {
       for(let event of aggregate._uncommitted_events_) {
-        const eh = handler.events[event._n]
-        if (eh) await eh(actor, aggregate, event)
-        else await handler.handle(actor, aggregate, event)
+        await handler.handle(actor, aggregate, event)
       }
     }
+
+    // clear aggregate before return
     aggregate._uncommitted_events_ = []
     return aggregate
   }
