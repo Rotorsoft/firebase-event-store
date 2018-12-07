@@ -55,9 +55,9 @@ MockFirestoreQuery.prototype.where = function (property, operator, value) {
 }
 
 module.exports = {
-  setup: (aggregates, { snapshots = true, debug = false } = {}) => {
+  setup: (aggregates, config = { snapshots = true, debug = false } = {}) => {
     mocksdk.apps = []
-    return setup(mocksdk, aggregates, snapshots, debug)
+    return setup(mocksdk, aggregates, config)
   },
   firebase: mocksdk
 }

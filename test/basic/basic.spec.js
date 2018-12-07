@@ -1,6 +1,6 @@
 'use strict'
 
-const { setup } = require('../setup')
+const { setup, firebase } = require('../setup')
 const { Calculator, EventCounter } = require('./model')
 
 let bus, firestore
@@ -12,7 +12,7 @@ const actor1 = { id: 'user1', name: 'user1', tenant: 'tenant1', roles: [] }
 describe('Basic', () => {
   before (() => {
     bus = setup([Calculator])
-    firestore = bus.eventStore._db_
+    firestore = firebase.firestore()
     bus.addEventHandler(new EventCounter(firestore))
   })
 
@@ -78,7 +78,7 @@ describe('Basic', () => {
 describe('Basic without Snapshooter', () => {
   before (() => {
     bus = setup([Calculator], { snapshots: false, debug: true })
-    firestore = bus.eventStore._db_
+    firestore = firebase.firestore()
     bus.addEventHandler(new EventCounter(firestore))
   })
 

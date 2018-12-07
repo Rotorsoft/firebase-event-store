@@ -2,7 +2,7 @@
 
 const Bus = require('../../src/Bus')
 const Aggregate = require('../../src/Aggregate')
-const { FirestoreEventStore } = require('../../src/FirestoreEventStore')
+const FirestoreEventStore = require('../../src/FirestoreEventStore')
 const { Calculator } = require('./model')
 const { InvalidAggregate, InvalidHandler } = require('./invalid')
 const { setup, firebase } = require('../setup')
@@ -10,7 +10,7 @@ const storeSetup = require('../../index').setup
 const actor1 = { id: 'user1', name: 'user1', tenant: 'tenant1', roles: [] }
 
 const bus = setup([Calculator])
-const firestore = bus.eventStore._db_
+const firestore = firebase.firestore()
 
 describe('Err handling', () => {
   it('should throw missing arguments actor', async () => {

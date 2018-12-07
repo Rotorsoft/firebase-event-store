@@ -1,7 +1,6 @@
 'use strict'
 
 const IEventStore = require('./IEventStore')
-const IEventHandler = require('./IEventHandler')
 const Aggregate = require('./Aggregate')
 const Err = require('./Err')
 const Padder = require('./Padder')
@@ -14,9 +13,8 @@ function streamPath (tenant, aggregateType) {
   return '/tenants/'.concat(tenant, '/streams/', aggregateType.stream)
 }
 
-class FirestoreSnapshooter extends IEventHandler {
+class FirestoreSnapshooter {
   constructor (db) {
-    super()
     this._db_ = db
   }
 
@@ -25,18 +23,18 @@ class FirestoreSnapshooter extends IEventHandler {
     return doc.exists ? Aggregate.create(this, aggregateType, doc.data()) : null
   }
 
-  async handle (actor, aggregate) {
+  async save (tenant, aggregate) {
     const aggregateType = Object.getPrototypeOf(aggregate).constructor
-    const aggRef = this._db_.collection(aggregatesPath(actor.tenant, aggregateType)).doc(aggregate.aggregateId)
+    const aggRef = this._db_.collection(aggregatesPath(tenant, aggregateType)).doc(aggregate.aggregateId)
     await aggRef.set(Object.assign({}, aggregate))
   }
 }
 
-class FirestoreEventStore extends IEventStore {
-  constructor (db, snapshooter = null) {
+module.exports = class FirestoreEventStore extends IEventStore {
+  constructor (db, { snapshots = true } = {}) {
     super()
     this._db_ = db
-    this.snapshooter = snapshooter
+    if (snapshots) this.snapshooter = new FirestoreSnapshooter(db)
   }
 
   async loadAggregate (tenant, aggregateType, aggregateId) {
@@ -87,15 +85,14 @@ class FirestoreEventStore extends IEventStore {
     try {
       await batch.commit()
       aggregate._aggregate_version_ = expectedVersion
+
+      // save snapshot
+      if (this.snapshooter) await this.snapshooter.save(tenant, aggregate)
+
       return aggregate
     }
     catch(error) {
       throw Err.concurrencyError() 
     }
   }
-}
-
-module.exports = {
-  FirestoreEventStore,
-  FirestoreSnapshooter
 }
