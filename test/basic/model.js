@@ -21,12 +21,12 @@ class Calculator extends Aggregate {
       AddNumbers: async (actor, _) => {
         if (!Number.isInteger(_.number1)) throw Err.invalidArguments('number1')
         if (!Number.isInteger(_.number2)) throw Err.invalidArguments('number2')
-        this.addEvent(actor.id, EVENTS.NumbersAdded, _)
+        this.addEvent(EVENTS.NumbersAdded, _)
       },
       SubtractNumbers: async (actor, _) => {
         if (!Number.isInteger(_.number1)) throw Err.invalidArguments('number1')
         if (!Number.isInteger(_.number2)) throw Err.invalidArguments('number2')
-        this.addEvent(actor.id, EVENTS.NumbersSubtracted, _)
+        this.addEvent(EVENTS.NumbersSubtracted, _)
       }
     }
   }
@@ -58,7 +58,7 @@ class EventCounter extends IEventHandler {
   }
   get events () {
     return {
-      [EVENTS.NumbersAdded]: async (actor, aggregate) => {
+      [EVENTS.NumbersAdded]: async event => {
         return await this.count()
       }
     }

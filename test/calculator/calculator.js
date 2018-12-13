@@ -30,17 +30,17 @@ module.exports = class Calculator extends Aggregate {
     return { 
       PressDigit: async (actor, _) => {
         if (_.digit < '0' || _.digit > '9') throw Err.invalidArguments('digit')
-        this.addEvent(actor.id, EVENTS.DigitPressed, _)
+        this.addEvent(EVENTS.DigitPressed, _)
       },
       PressDot: async (actor, _) => {
-        this.addEvent(actor.id, EVENTS.DotPressed, _)
+        this.addEvent(EVENTS.DotPressed, _)
       },
       PressOperator: async (actor, _) => {
         if (!Object.keys(OPERATORS).includes(_.operator)) throw Err.invalidArguments('operator')
-        this.addEvent(actor.id, EVENTS.OperatorPressed, _)
+        this.addEvent(EVENTS.OperatorPressed, _)
       },
       PressEquals: async (actor, _) => {
-        this.addEvent(actor.id, EVENTS.EqualsPressed, _)
+        this.addEvent(EVENTS.EqualsPressed, _)
       }
     }
   }

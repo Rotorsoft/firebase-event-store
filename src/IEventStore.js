@@ -14,10 +14,11 @@ module.exports = class IEventStore {
 
   /**
    * Commits pending events to store
-   * @param {String} tenant tenant id
-   * @param {Aggregate} aggregate aggregate with new events
+   * @param {Object} actor with tenant id
+   * @param {String} command command name
+   * @param {Aggregate} aggregate aggregate with uncommitted events
    * @param {Integer} expectedVersion expected version in store
-   * @returns Promise with updated aggregate
+   * @returns Promise with array of committed events
    */
-  async commitEvents (tenant, aggregate, expectedVersion) { throw Err.notImplemented('commitEvents') }
+  async commitEvents (actor, command, aggregate, expectedVersion) { throw Err.notImplemented('commitEvents') }
 }

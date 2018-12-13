@@ -77,7 +77,7 @@ describe('Basic', () => {
 
 describe('Basic without Snapshooter', () => {
   before (() => {
-    bus = setup([Calculator], { snapshots: false, debug: true })
+    bus = setup([Calculator], false)
     firestore = firebase.firestore()
     bus.addEventHandler(new EventCounter(firestore))
   })

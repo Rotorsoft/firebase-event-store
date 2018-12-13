@@ -1,0 +1,8 @@
+2.0.4
+* Injected ITracer interface to FirestoreEventStore and CommandHandler for tracing and stat collection
+* Removed creator parameter from Aggregate.addEvent, the actor id and command name are now passed internally by the event store when committing events 
+* Replaced Bus with CommandHandler extending IBus
+* Created CommandMapper to map commands to Aggregate types
+* IEventStore.commitEvents now returning committed events instead of Aggregate and accepting actor and command name
+* Simpler IBus only responsible for event handling
+* Removed actor and aggregate from IEventHandler events signature. Committed events that are published to handlers contain actor id, aggregate id, and command name

@@ -1,30 +1,53 @@
 'use strict'
 
+const IEventHandler = require('./IEventHandler')
 const Err = require('./Err')
 
 /**
  * Message bus interface
  */
 module.exports = class IBus {
+  constructor () {
+    this._eventHandlers_ = []
+  }
+
   /**
    * Registers event handler with bus
+   * 
    * @param {IEventHandler} handler Event handler
    */
-  addEventHandler (handler) { throw Err.notImplemented('addEventHandler') }
+  addEventHandler (handler) {
+    if (!(handler instanceof IEventHandler)) throw Err.invalidArguments('handler')
+    this._eventHandlers_.push(handler)
+  }
+  
+  /**
+   * Publishes event to handlers
+   * 
+   * @param {Object} event 
+   */
+  async publish(event) {
+    for(let handler of this._eventHandlers_) {
+      await handler.handle(event)
+    }
+  }
 
   /**
    * Pumps all registered handlers
    */
-  async pump (actor, payload) {}
+  async pump (actor, payload) {
+    for(let handler of this._eventHandlers_) {
+      await handler.pump(actor, payload)
+    }
+  }
 
   /**
-   * Handles command message. Since most of the time there is only one command handler in the system, we can 
-   * use the Bus to deal with this. Will define command handler interface in pub/sub style once we find the need for 
-   * more handlers
+   * Handles command
    * 
    * @param {Object} actor User/Process sending command - must contain { id, name, tenant, and roles }
-   * @param {String} command Command name
+   * @param {String} command name
    * @param {Object} payload
+   * @returns {Aggregate}
    */
-  async command (actor, command, { aggregateId = '', expectedVersion = -1, ...payload } = {}) { throw Err.notImplemented('command') }
+  async command (actor, command, { aggregateId = '', expectedVersion = -1, ...payload } = {}) {}
 }

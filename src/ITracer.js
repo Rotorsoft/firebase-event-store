@@ -1,27 +1,14 @@
 'use strict'
 
-class ITracer {
-  trace (...args) {}
-}
-
-class ConsoleTracer extends ITracer {
-  constructor () {
-    super()
-  }
-
-  trace (...args) {
-    console.log('TRACE: '.concat(args.join(' ')))
-  }
-}
-
-class NullTracer extends ITracer {
-  constructor () {
-    super ()
-  }
-}
-
-module.exports = {
-  ITracer,
-  ConsoleTracer,
-  NullTracer
+/**
+ * Trace interface
+ */
+module.exports = class ITracer {
+  /**
+   * 
+   * @param {Integer} level Trace level
+   * @param {String} stat Trace stats (counters, etc)
+   * @param {Object} args Other arguments (msg, payload, aggregateType, event, etc)
+   */
+  trace ({ level = 0, ...args } = {}) {}
 }

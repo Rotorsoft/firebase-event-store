@@ -1,15 +1,39 @@
 'use strict'
 
-const { setup } = require('../setup')
+const { setup, ITracer } = require('../setup')
 const Calculator = require('./calculator')
 
 let bus
 
 const actor1 = { id: 'user1', name: 'user1', tenant: 'tenant1', roles: [] }
 
+class ConsoleTracer extends ITracer {
+  constructor () {
+    super()
+    this.stats = {}
+  }
+
+  trace ({ level = 0, stat = null, aggregateType = 'aggregateType', event = 'event', ...args } = {}) {
+    if (stat) {
+      const s = this.stats[stat] || {}
+      const t = s[aggregateType.name] || {}
+      const e = t[event._c + '-' + event._n] || {} 
+      e.time = e.time || Date.now()
+      e.count = (e.count || 0) + 1
+      t[event._c + '-' + event._n] = e
+      s[aggregateType.name] = t
+      this.stats[stat] = s
+    } else {
+      console.log('TRACE: '.concat(JSON.stringify(args)))
+    }
+  }
+}
+
+const tracer = new ConsoleTracer()
+
 describe('Calculator basic operations', () => {
   before (() => {
-    bus = setup([Calculator], { debug: true })
+    bus = setup([Calculator], false, tracer)
   })
 
   async function c (calc, command, payload) {
@@ -107,5 +131,7 @@ describe('Calculator basic operations', () => {
     calc = await c(calc, 'PressEquals', {})
   
     calc.result.should.equal(31.6969696969697)
+
+    console.log(JSON.stringify(tracer.stats))
   })
 })

@@ -1,8 +1,8 @@
 'use strict'
 
-const Bus = require('../../src/Bus')
 const Aggregate = require('../../src/Aggregate')
 const FirestoreEventStore = require('../../src/FirestoreEventStore')
+const CommandHandler = require('../../src/CommandHandler')
 const { Calculator } = require('./model')
 const { InvalidAggregate, InvalidHandler } = require('./invalid')
 const { setup, firebase } = require('../setup')
@@ -134,7 +134,7 @@ describe('Not implemented', () => {
 describe('Err handling 2', () => {  
   it('should throw invalid arguments: store', async () => {
     try {
-      let bus2 = new Bus(new Object())
+      let bus2 = new CommandHandler(new Object(), [])
     }
     catch(error) {
       error.message.should.equal('invalid arguments: store')
@@ -143,7 +143,7 @@ describe('Err handling 2', () => {
 
   it('should throw invalid arguments: handler', async () => {
     try {
-      let bus2 = new Bus(new FirestoreEventStore(firestore))
+      let bus2 = new CommandHandler(new FirestoreEventStore(firestore), [])
       bus2.addEventHandler(new Object())
     }
     catch(error) {

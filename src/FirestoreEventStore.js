@@ -1,6 +1,7 @@
 'use strict'
 
 const IEventStore = require('./IEventStore')
+const ITracer = require('./ITracer')
 const Aggregate = require('./Aggregate')
 const Err = require('./Err')
 const Padder = require('./Padder')
@@ -31,26 +32,26 @@ class FirestoreSnapshooter {
 }
 
 module.exports = class FirestoreEventStore extends IEventStore {
-  constructor (db, { snapshots = true } = {}) {
+  constructor (db, snapshots = true, tracer = null) {
     super()
     this._db_ = db
-    if (snapshots) this.snapshooter = new FirestoreSnapshooter(db)
+    if (snapshots) this._snapshooter_ = new FirestoreSnapshooter(db)
+    this._tracer_ = tracer || new ITracer()
   }
 
   async loadAggregate (tenant, aggregateType, aggregateId) {
     if (aggregateId) {
-      const aggregate = (this.snapshooter ? await this.snapshooter.load(tenant, aggregateType, aggregateId) : null) || Aggregate.create(this, aggregateType, { _aggregate_id_: aggregateId })
+      const aggregate = (this._snapshooter_ ? await this._snapshooter_.load(tenant, aggregateType, aggregateId) : null) || Aggregate.create(this, aggregateType, { _aggregate_id_: aggregateId })
       
       // load events that ocurred after snapshot was taken
       const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
       const versionPadded = aggregateVersionPadder.pad(aggregate.aggregateVersion + 1)
-      // console.log('loading ' + aggregateId + ' from v' + versionPadded)
       const eventsRef = this._db_.collection(streamPath(tenant, aggregateType).concat('/events'))
-      const events = await eventsRef.where('_aid', '==', aggregate.aggregateId).where('_v', '>=', versionPadded).get()
+      const events = await eventsRef.where('_a', '==', aggregate.aggregateId).where('_v', '>=', versionPadded).get()
       events.forEach(doc => {
         const event = Object.freeze(doc.data())
-        // console.log(doc.id + ' : ' + JSON.stringify(event))
         aggregate.loadEvent(event)
+        this._tracer_.trace({ stat: 'loadEvent', aggregateType, event })
       })
       return aggregate
     }
@@ -59,25 +60,31 @@ module.exports = class FirestoreEventStore extends IEventStore {
     return Aggregate.create(this, aggregateType, { _aggregate_id_: newAggRef.id })
   }
 
-  async commitEvents (tenant, aggregate, expectedVersion) {
+  async commitEvents (actor, command, aggregate, expectedVersion) {
     if (aggregate.aggregateVersion !== expectedVersion) throw Err.concurrencyError()
     const aggregateType = Object.getPrototypeOf(aggregate).constructor
     if (expectedVersion + 1 >= aggregateType.maxEvents - 1) throw Err.preconditionError('max events reached')
 
     const eventsVersionPadder = new Padder(1e6)
     const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
-    const streamRef = this._db_.doc(streamPath(tenant, aggregateType))
+    const streamRef = this._db_.doc(streamPath(actor.tenant, aggregateType))
     const streamDoc = await streamRef.get()
     let eventVersion = 0
     const batch = this._db_.batch()
     if (!streamDoc.exists) batch.create(streamRef, {})
     else eventVersion = streamDoc.data()._version_
     const eventsRef = streamRef.collection('events')
+    const events = []
     aggregate._uncommitted_events_.forEach(event => {
       const eventId = eventsVersionPadder.pad(eventVersion++)
-      const eventObject = Object.assign({ _aid: aggregate._aggregate_id_, _v: aggregateVersionPadder.pad(++expectedVersion) }, event)
+      const eventObject = Object.assign({
+        _u: actor.id,
+        _c: command,
+        _a: aggregate._aggregate_id_,
+        _v: aggregateVersionPadder.pad(++expectedVersion)
+      }, event)
       batch.create(eventsRef.doc(eventId), eventObject)
-      // console.log('creating ' + eventId + ' : ' + JSON.stringify(eventObject))
+      events.push(eventObject)
     })
     batch.update(streamRef, { _version_: eventVersion })
 
@@ -87,9 +94,9 @@ module.exports = class FirestoreEventStore extends IEventStore {
       aggregate._aggregate_version_ = expectedVersion
 
       // save snapshot
-      if (this.snapshooter) await this.snapshooter.save(tenant, aggregate)
+      if (this._snapshooter_) await this._snapshooter_.save(actor.tenant, aggregate)
 
-      return aggregate
+      return events
     }
     catch(error) {
       throw Err.concurrencyError() 

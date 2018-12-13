@@ -10,10 +10,10 @@ module.exports = class IEventHandler {
    * Example:
    *    get events () {
    *      return {
-   *        ['Event1']: async (actor, aggregate, event) => {
+   *        ['Event1']: async (event) => {
    *          ...
    *        },
-   *        ['Event2']: async (actor, aggregate, event) => {
+   *        ['Event2']: async (event) => {
    *          ...
    *        }
    *      }
@@ -24,13 +24,11 @@ module.exports = class IEventHandler {
   /**
    * Handles events. Invokes specific event handler if found in map
    * 
-   * @param {Object} actor 
-   * @param {Object} aggregate
    * @param {Object} event
    */
-  async handle (actor, aggregate, event) {
+  async handle (event) {
     const eh = this.events[event._n]
-    if (eh) await eh(actor, aggregate, event)
+    if (eh) await eh(event)
   }
 
   /**

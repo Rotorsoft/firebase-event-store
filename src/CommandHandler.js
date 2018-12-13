@@ -1,50 +1,45 @@
 'use strict'
 
-const Aggregate = require('./Aggregate')
+const IBus = require('./IBus')
+const ITracer = require('./ITracer')
+const CommandMapper = require('./CommandMapper')
 const Err = require('./Err')
 
-module.exports = class CommandHandler {
+module.exports = class CommandHandler extends IBus {
   /**
-   * Command handler
+   * Command handler implements in-memory bus
    * 
    * @param {IEventStore} store 
    * @param {Aggregate[]} aggregates
    * @param {ITracer} tracer
    */
-  constructor (store, aggregates, tracer) {
+  constructor (store, aggregates, tracer = null) {
+    super()
     this._store_ = store
-    this._tracer_ = tracer
-
-    // build commands map
-    this._map_ = {}
-    aggregates.forEach(aggregateType => {
-      if (!(aggregateType.prototype instanceof Aggregate)) throw Err.preconditionError(`${aggregateType.name} is not a subclass of Aggregate`)
-      const aggregate = Aggregate.create(null, aggregateType)
-      for(let command of Object.keys(aggregate.commands)) {
-        this._map_[command] = aggregateType
-      }
-    })
+    this._tracer_ = tracer || new ITracer()
+    this._mapper_ = new CommandMapper(aggregates)
   }
 
-  /**
-   * Handles command
-   * 
-   * @param {Object} actor 
-   * @param {String} command 
-   * @param {Object} payload
-   * @returns {Aggregate}
-   */
-  async handle (actor, command, { aggregateId = '', expectedVersion = -1, ...payload } = {}) {
-    this._tracer_.trace(`actor ${JSON.stringify(actor)} sent ${command}(${aggregateId}.${expectedVersion})`, JSON.stringify(payload))
-    if (expectedVersion >= 0 && !aggregateId) throw Err.missingArguments('aggregateId')
+  async command (actor, command, { aggregateId = '', expectedVersion = -1, ...payload } = {}) {
+    // validate arguments
+    if (!actor) throw Err.missingArguments('actor')
+    if (!actor.id) throw Err.missingArguments('actor.id')
+    if (!actor.name) throw Err.missingArguments('actor.name')
+    if (!actor.tenant) throw Err.missingArguments('actor.tenant')
+    if (!actor.roles) throw Err.missingArguments('actor.roles')
+    if (!command) throw Err.missingArguments('command')
     
+    // handle pumps
+    if (command === 'pump') return await this.pump(actor, payload)
+
     // get aggregate type from commands map
-    const aggregateType = this._map_[command]
-    if (!aggregateType) throw Err.invalidArguments(`command ${command} not found`)
+    if (expectedVersion >= 0 && !aggregateId) throw Err.missingArguments('aggregateId')
+    const aggregateType = this._mapper_.map(command)
 
     // load latest aggregate snapshot
+    this._tracer_.trace({ msg: `actor ${JSON.stringify(actor)} sent ${command} to ${aggregateType.name} ${aggregateId} (v${expectedVersion}) with`, payload })
     let aggregate = await this._store_.loadAggregate(actor.tenant, aggregateType, aggregateId)
-    this._tracer_.trace('after load', JSON.stringify(aggregate))
+    this._tracer_.trace({ msg: `after loading ${aggregateType.name}`, aggregate })
   
     // handle command
     await aggregate.commands[command](actor, payload)
@@ -53,8 +48,13 @@ module.exports = class CommandHandler {
     if (expectedVersion === -1) expectedVersion = aggregate._aggregate_version_
 
     // commit events
-    aggregate = await this._store_.commitEvents(actor.tenant, aggregate, expectedVersion)
-    this._tracer_.trace('after commit', JSON.stringify(aggregate))
+    const events = await this._store_.commitEvents(actor, command, aggregate, expectedVersion)
+    this._tracer_.trace({ msg: 'after committing', events })
+
+    // publish committed events
+    for(let event of events) {
+      await this.publish(event)
+    }
 
     return aggregate
   }
