@@ -1,10 +1,10 @@
 'use strict'
 
 const Aggregate = require('../../src/Aggregate')
-const FirestoreEventStore = require('../../src/FirestoreEventStore')
-const CommandHandler = require('../../src/CommandHandler')
+const FirestoreEventStore = require('../../src/firestore/FirestoreEventStore')
+const Bus = require('../../src/Bus')
 const { Calculator } = require('./model')
-const { InvalidAggregate, InvalidHandler } = require('./invalid')
+const { InvalidAggregate, InvalidAggregate2, InvalidHandler } = require('./invalid')
 const { setup, firebase } = require('../setup')
 const storeSetup = require('../../index').setup
 const actor1 = { id: 'user1', name: 'user1', tenant: 'tenant1', roles: [] }
@@ -120,13 +120,13 @@ describe('Not implemented', () => {
     }
   })
 
-  it('should throw not implemented events', async () => {
+  it('should throw not implemented name', async () => {
     try {
-      bus.addEventHandler(new InvalidHandler())
+      await bus.subscribe('tenant1', [new InvalidHandler()])
       await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('not implemented: events')
+      error.message.should.be.equal('not implemented: name')
     }
   })
 })
@@ -134,7 +134,7 @@ describe('Not implemented', () => {
 describe('Err handling 2', () => {  
   it('should throw invalid arguments: store', async () => {
     try {
-      let bus2 = new CommandHandler(new Object(), [])
+      let bus2 = new Bus(new Object(), [])
     }
     catch(error) {
       error.message.should.equal('invalid arguments: store')
@@ -143,11 +143,11 @@ describe('Err handling 2', () => {
 
   it('should throw invalid arguments: handler', async () => {
     try {
-      let bus2 = new CommandHandler(new FirestoreEventStore(firestore), [])
-      bus2.addEventHandler(new Object())
+      let bus2 = new Bus(new FirestoreEventStore(firestore), [])
+      await bus2.subscribe('tenant1', [new Object()])
     }
     catch(error) {
-      error.message.should.equal('invalid arguments: handler')
+      error.message.should.equal('invalid arguments: handlers')
     }
   })
   
@@ -223,9 +223,8 @@ describe('Err handling 2', () => {
 
   it('should throw not implemented path', async () => {
     try {
-      delete Calculator.path
-      const bus = storeSetup(firebase, [Calculator])
-      await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      const bus = storeSetup(firebase, [InvalidAggregate2])
+      await bus.command(actor1, 'InvalidCommand', {})
     }
     catch(error) {
       error.message.should.be.equal('not implemented: path')

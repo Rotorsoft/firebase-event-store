@@ -6,3 +6,12 @@
 * IEventStore.commitEvents now returning committed events instead of Aggregate and accepting actor and command name
 * Simpler IBus only responsible for event handling
 * Removed actor and aggregate from IEventHandler events signature. Committed events that are published to handlers contain actor id, aggregate id, and command name
+
+2.1.0
+* Replaced CommandHandler with Bus now implementing command side and Kafka style pub/sub messaging where consumers are subscribed to a stream and 
+  stream readers keep pushing events from log and record the latest consumed versions
+* Removed pump from event handlers and bus
+* Added name and stream to event handlers so they can be subscribed to the bus and wait for events to be pushed
+* Added loadEvents, getStreamData, and commitCursors methods to event store to support pub/sub storage of consumer positions (cursors)
+* Modified ITracer to accept a lazy function that will be called only by concrete tracers
+* Implemented PushWindow and StreamReader to support pushing events to subscribed consumers

@@ -4,6 +4,7 @@
   "description": "Simple multi-tenant event sourcing store based on firestore",
   "main": "index.js",
   "scripts": {
+    "test1": "mocha ./test/basic/streams.spec.js --reporter spec --timeout 10000 || exit 0",
     "test": "mocha ./test/**/*.spec.js --reporter spec --timeout 10000 || exit 0",
     "cover": "istanbul cover ./node_modules/mocha/bin/_mocha ./test/**/*.spec.js -- -R spec --timeout 10000"
   },

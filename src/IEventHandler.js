@@ -1,9 +1,21 @@
 'use strict'
 
+const Err = require('./Err')
+
 /**
  * EventHandler interface to be implemented by manager processes subscribed to event bus
  */
 module.exports = class IEventHandler {
+  /**
+   * Unique name in stream (used to store cursors)
+   */
+  get name () { throw Err.notImplemented('name') }
+
+  /**
+   * Stream name where events are published
+   */
+  get stream() { return 'main' }
+
   /**
    * Object map of async event handlers
    * 
@@ -22,7 +34,7 @@ module.exports = class IEventHandler {
   get events () { return {} }
 
   /**
-   * Handles events. Invokes specific event handler if found in map
+   * Handles event
    * 
    * @param {Object} event
    */
@@ -30,12 +42,4 @@ module.exports = class IEventHandler {
     const eh = this.events[event._n]
     if (eh) await eh(event)
   }
-
-  /**
-   * Handles pump command
-   * 
-   * @param {Object} actor 
-   * @param {Object} payload 
-   */
-  async pump (actor, payload) {}
 }

@@ -44,31 +44,29 @@ class Calculator extends Aggregate {
 }
 
 class EventCounter extends IEventHandler {
-  constructor(db) {
+  constructor(db, name) {
     super()
     this.db = db
+    this._name_ = name
   }
 
-  async count () {
-    const path = '/counters/counter1'
+  get name () { return this._name_ }
+  
+  async count (event) {
+    const path = '/counters/'.concat(this.name)
     let snap = await this.db.doc(path).get()
     let doc = snap.data() || {}
     doc.eventCount = (doc.eventCount || 0) + 1
-    return await this.db.doc(path).set(doc)
+    await this.db.doc(path).set(doc)
+    if (this.name) console.log(`${this.name} handled event ${event._version_} and count is ${doc.eventCount}`)
   }
+
   get events () {
     return {
       [EVENTS.NumbersAdded]: async event => {
-        return await this.count()
+        return await this.count(event)
       }
     }
-  }
-  async pump (actor, payload) {
-    const path = '/counters/pumps'
-    let snap = await this.db.doc(path).get()
-    let doc = snap.data() || {}
-    doc.pumpCount = (doc.pumpCount || 0) + 1
-    return await this.db.doc(path).set(doc)
   }
 }
 

@@ -16,7 +16,6 @@ module.exports = class Aggregate {
     Object.defineProperty(aggregate, '_aggregate_id_', { value: _aggregate_id_, writable: !_aggregate_id_, enumerable: true }) 
     Object.defineProperty(aggregate, '_aggregate_version_', { value: _aggregate_version_, writable: true, enumerable: true })
     Object.defineProperty(aggregate, '_uncommitted_events_', { value: [], writable: false, enumerable: false })
-    Object.defineProperty(aggregate, '_store_', { value: store, writable: false, enumerable: false })
     return aggregate
   }
 

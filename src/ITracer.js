@@ -5,10 +5,9 @@
  */
 module.exports = class ITracer {
   /**
+   * Calls trace function that returns object with trace values
    * 
-   * @param {Integer} level Trace level
-   * @param {String} stat Trace stats (counters, etc)
-   * @param {Object} args Other arguments (msg, payload, aggregateType, event, etc)
+   * @param {Function} fn Trace function invoked only by concrete tracers
    */
-  trace ({ level = 0, ...args } = {}) {}
+  trace (fn) {}
 }

@@ -9,6 +9,8 @@ Always afraid of overengineering, I decided not to implement the Query Side and 
 
 So far the results have been positive. The store supports multiple tenants as well as multiple event streams within each tenant. Notice that this is just a seed (not to be interpreted as a framework!), and there is a lot of room for improvement. I would like to see Firebase integrating a serverless Pub/Sub messaging solution in their ecosystem. This will facilitate a refactoring of the in-memory Bus to make it more scalable. I would also like to revisit the Query Side and explore different types of projection models... In the meantime, I will be deploying more apps.
 
+[Sat Jan 5 2019] - Released code implementing a Kafka like pub/sub messaging mechanism where consumers can subscribe to the bus at any time and wait for events to be pushed by stream readers. After events are handled succesfully, the reading position (cursor) of each consumer (event handler) is stored with the stream to avoid resending events. Event handlers must be idempotent though, since there is always a chance of events being pushed more than once.
+
 #### Figure 1. CQRS - Command Query Resposibility Segregation Reference Architecture
 ![Figure 1](/assets/CQRSArchitecture.PNG)
 
@@ -87,19 +89,11 @@ class EventCounter extends IEventHandler {
       }
     }
   }
-
-  async pump (actor, payload) {
-    const path = '/counters/pumps'
-    let snap = await this.db.doc(path).get()
-    let doc = snap.data() || {}
-    doc.pumpCount = (doc.pumpCount || 0) + 1
-    return await this.db.doc(path).set(doc)
-  }
 }
 
 const firebase = //TODO get firebase ref
 const bus = setup(firebase, [Calculator])
-bus.addEventHandler(new EventCounter(docStore))
+await bus.subscribe('tenant1', [new EventCounter(docStore)])
 
 let actor = { id: 'user1', name: 'actor 1', tenant: 'tenant1', roles: ['manager', 'user'] }
 let calc = await bus.command(actor, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })
@@ -211,7 +205,8 @@ class ConsoleTracer extends ITracer {
     this.stats = {}
   }
 
-  trace ({ level = 0, stat = null, aggregateType = 'aggregateType', event = 'event', ...args } = {}) {
+  trace (fn) { 
+    const { level = 0, stat = null, aggregateType = 'aggregateType', event = 'event', ...args } = fn()
     if (stat) {
       const s = this.stats[stat] || {}
       const t = s[aggregateType.name] || {}

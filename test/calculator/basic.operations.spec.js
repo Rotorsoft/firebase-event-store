@@ -13,8 +13,9 @@ class ConsoleTracer extends ITracer {
     this.stats = {}
   }
 
-  trace ({ level = 0, stat = null, aggregateType = 'aggregateType', event = 'event', ...args } = {}) {
-    if (stat) {
+  trace (fn) {
+    const { stat, aggregateType, event, ...args } = fn()
+    if (stat === 'loadEvent') {
       const s = this.stats[stat] || {}
       const t = s[aggregateType.name] || {}
       const e = t[event._c + '-' + event._n] || {} 

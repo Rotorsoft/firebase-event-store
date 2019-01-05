@@ -10,10 +10,10 @@ process.on('unhandledRejection', error => { console.log('unhandledRejection', er
 const actor1 = { id: 'user1', name: 'user1', tenant: 'tenant1', roles: [] }
 
 describe('Basic', () => {
-  before (() => {
+  before (async () => {
     bus = setup([Calculator])
     firestore = firebase.firestore()
-    bus.addEventHandler(new EventCounter(firestore))
+    await bus.subscribe('tenant1', [new EventCounter(firestore, 'counter1'), new EventCounter(firestore, 'counter2')])
   })
 
   it('should accumulate numbers to 12', async () => {
@@ -21,6 +21,7 @@ describe('Basic', () => {
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc123' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId })
+    await bus.flush()
     let counter = await firestore.doc('/counters/counter1').get()
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)
@@ -52,13 +53,9 @@ describe('Basic', () => {
     let calc = await bus.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: 'calc9' })
     for (let i = 0; i < iters; i++) {
       calc = await bus.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
-      await bus.command(actor1, 'pump', {})
     }
     calc.aggregateVersion.should.equal(iters)
     calc.sum.should.equal(iters + 1)
-    const snap = await firestore.doc('/counters/pumps').get()
-    let doc = snap.data()
-    doc.pumpCount.should.be.at.least(iters)
   })
 
   it('should throw precondition error: max events reached', async () => {
@@ -79,15 +76,13 @@ describe('Basic without Snapshooter', () => {
   before (() => {
     bus = setup([Calculator], false)
     firestore = firebase.firestore()
-    bus.addEventHandler(new EventCounter(firestore))
+    bus.subscribe('tenant1', [new EventCounter(firestore)])
   })
 
   it('should load aggregate from events', async () => {
     let calc 
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc100' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
-    // trigger snapshooter
-    await bus.command(actor1, 'pump', {})
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)

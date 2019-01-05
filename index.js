@@ -1,19 +1,18 @@
 'use strict'
 
-const IBus = require('./src/IBus')
 const IEventHandler = require('./src/IEventHandler')
 const IEventStore = require('./src/IEventStore')
 const ITracer = require('./src/ITracer')
+const Bus = require('./src/Bus')
 const Aggregate = require('./src/Aggregate')
-const CommandHandler = require('./src/CommandHandler')
-const FirestoreEventStore = require('./src/FirestoreEventStore')
+const FirestoreEventStore = require('./src/firestore/FirestoreEventStore')
 const Err = require('./src/Err')
 
 let _bus_
 
 module.exports = {
   Aggregate,
-  IBus,
+  Bus,
   IEventHandler,
   IEventStore,
   ITracer,
@@ -32,9 +31,7 @@ module.exports = {
       firebase.initializeApp()
       const firestore = firebase.firestore()
       if (firestore.settings) firestore.settings({ timestampsInSnapshots: true })
-
-      const store = new FirestoreEventStore(firestore, snapshots, tracer)
-      _bus_ = new CommandHandler(store, aggregates, tracer)
+      _bus_ = new Bus(new FirestoreEventStore(firestore, snapshots, tracer), aggregates, tracer)
     }
     return _bus_
   }
