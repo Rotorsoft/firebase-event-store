@@ -12,7 +12,7 @@ class CommandMapper {
     this._map_ = {}
     aggregates.forEach(aggregateType => {
       if (!(aggregateType.prototype instanceof Aggregate)) throw Err.preconditionError(`${aggregateType.name} is not a subclass of Aggregate`)
-      const aggregate = Aggregate.create(null, aggregateType)
+      const aggregate = Aggregate.create(aggregateType)
       for(let command of Object.keys(aggregate.commands)) {
         this._map_[command] = aggregateType
       }
@@ -23,6 +23,30 @@ class CommandMapper {
     const aggregateType = this._map_[command]
     if (!aggregateType) throw Err.invalidArguments(`command ${command} not found`)
     return aggregateType
+  }
+}
+
+function _push (bus, tenant, stream, events = null, load = false) {
+  const readers = bus._readers_[tenant]
+  if (readers) {
+    const reader = readers[stream]
+    if (reader) bus._push_ = bus._push_.then(() => reader._push(events, load))
+  }
+}
+
+function _catchup (bus, tenant) {
+  const loop = reader => {
+    const catchup = async resolve => {
+      if (await reader._catchup()) setTimeout(catchup, 1000, resolve)
+      else resolve()
+    }
+    return new Promise(catchup)
+  }
+  const readers = bus._readers_[tenant]
+  if (readers) {
+    for(let key of Object.keys(readers)) {
+      bus._catchup_ = bus._catchup_.then(() => loop(readers[key]))
+    }
   }
 }
 
@@ -70,39 +94,17 @@ module.exports = class Bus {
       reader._subscribe(handler)
     }
     this._readers_[tenant] = readers
-    this._catchup(tenant)
+    _catchup(this, tenant)
   }
 
   /**
-   * Pushes events to handlers
+   * Polls stream for new events to push
    * 
-   * @param {String} tenant Tenant id
+   * @param {String} tenant Tenant Id
    * @param {String} stream Stream name
-   * @param {Array} events Optional array of newly stored events to avoid loading from store 
-   * @returns {Promise} Promise to push events
    */
-  _push (tenant, stream, events = null) {
-    const readers = this._readers_[tenant]
-    if (readers) {
-      const reader = readers[stream]
-      if (reader) this._push_ = this._push_.then(() => reader._push(events))
-    }
-  }
-
-  _catchup (tenant) {
-    const loop = reader => {
-      const catchup = async resolve => {
-        if (await reader._catchup()) setTimeout(catchup, 1000, resolve)
-        else resolve()
-      }
-      return new Promise(catchup)
-    }
-    const readers = this._readers_[tenant]
-    if (readers) {
-      for(let key of Object.keys(readers)) {
-        this._catchup_ = this._catchup_.then(() => loop(readers[key]))
-      }
-    }
+  async poll (tenant, stream) {
+    await _push(this, tenant, stream, null, true)
   }
 
   /**
@@ -150,7 +152,7 @@ module.exports = class Bus {
     this._tracer_.trace(() => ({ msg: 'after committing', events }))
 
     // push new events
-    this._push(actor.tenant, aggregateType.stream, events)
+    _push(this, actor.tenant, aggregateType.stream, events)
 
     return aggregate
   }

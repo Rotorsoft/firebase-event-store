@@ -25,10 +25,12 @@ module.exports = class StreamReader {
 
   /**
    * Pushes current window of events to handlers and commits cursors after sync
-   * @param {Array} events (Optional)
+   * 
+   * @param {Array} events (Optional) real time events to be appended at the end of current window
+   * @param {Boolean} load (Optional) flag to force loading window when empty (poll for new events)
    */
-  async _push (events) {
-    await this._current_._push(this, events)
+  async _push (events, load = false) {
+    await this._current_._push(this, events, load)
     if (this._current_._version_ > this._version_) this._version_ = this._current_._version_
   }
 

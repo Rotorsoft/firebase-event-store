@@ -15,3 +15,7 @@
 * Added loadEvents, getStreamData, and commitCursors methods to event store to support pub/sub storage of consumer positions (cursors)
 * Modified ITracer to accept a lazy function that will be called only by concrete tracers
 * Implemented PushWindow and StreamReader to support pushing events to subscribed consumers
+
+2.1.1
+* Added poll function to bus allowing pull mode (when multiple buses are interested in listening)
+* Encapsulated some of the private stuff in the bus

@@ -5,12 +5,11 @@ const Err = require('./Err')
 module.exports = class Aggregate {
   /**
    * Aggregate factory method
-   * @param {Object} store Store where aggregate is created
    * @param {Object} aggregateType subclass of Aggregate
    * @param {Object} object with optional payload attributes including _aggregate_id_ and _aggregate_version_
    * @returns {Aggregate} instance of aggregateType
    */
-  static create (store, aggregateType, { _aggregate_id_ = '', _aggregate_version_ = -1, ...payload } = {}) {
+  static create (aggregateType, { _aggregate_id_ = '', _aggregate_version_ = -1, ...payload } = {}) {
     const aggregate = new aggregateType.prototype.constructor()
     Object.assign(aggregate, payload)
     Object.defineProperty(aggregate, '_aggregate_id_', { value: _aggregate_id_, writable: !_aggregate_id_, enumerable: true }) 

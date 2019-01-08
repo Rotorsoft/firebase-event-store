@@ -33,7 +33,7 @@ class FirestoreSnapshooter {
 
   async load (tenant, aggregateType, aggregateId) {
     const doc = await this._db_.collection(aggregatesPath(tenant, aggregateType)).doc(aggregateId).get()
-    return doc.exists ? Aggregate.create(this, aggregateType, doc.data()) : null
+    return doc.exists ? Aggregate.create(aggregateType, doc.data()) : null
   }
 
   async save (tenant, aggregate) {
@@ -53,7 +53,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
 
   async loadAggregate (tenant, aggregateType, aggregateId) {
     if (aggregateId) {
-      const aggregate = (this._snapshooter_ ? await this._snapshooter_.load(tenant, aggregateType, aggregateId) : null) || Aggregate.create(this, aggregateType, { _aggregate_id_: aggregateId })
+      const aggregate = (this._snapshooter_ ? await this._snapshooter_.load(tenant, aggregateType, aggregateId) : null) || Aggregate.create(aggregateType, { _aggregate_id_: aggregateId })
       
       // load events that ocurred after snapshot was taken
       const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
@@ -69,7 +69,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
     }
     // return new aggregate with generated id
     const newAggRef = this._db_.collection(aggregatesPath(tenant, aggregateType)).doc()
-    return Aggregate.create(this, aggregateType, { _aggregate_id_: newAggRef.id })
+    return Aggregate.create(aggregateType, { _aggregate_id_: newAggRef.id })
   }
 
   async loadEvents (tenant, stream, fromVersion, limit) {

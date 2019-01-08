@@ -97,4 +97,15 @@ describe('Streams', () => {
     let counter6 = await firestore.doc('/counters/counter61').get()
     counter6.data().eventCount.should.equal(17)
   })
+
+  it('should poll until done', async () => {
+    let bus3 = setup([Calculator], true, new ConsoleTracer())
+    await bus3.subscribe('tenant1', [new EventCounter(firestore, 'counter71')], 20)
+    await bus3.poll('tenant1', 'main')
+    await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
+    await bus3.poll('tenant1', 'main')
+    await bus3.flush()
+    let counter7 = await firestore.doc('/counters/counter71').get()
+    counter7.data().eventCount.should.equal(18)
+  })
 })
