@@ -19,3 +19,6 @@
 2.1.1
 * Added poll function to bus allowing pull mode (when multiple buses are interested in listening)
 * Encapsulated some of the private stuff in the bus
+
+2.1.2
+* Passing tenant id to event handlers

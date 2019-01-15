@@ -56,7 +56,7 @@ module.exports = class PushWindow {
         for (let key of Object.keys(this._handlers_)) {
           const handler = this._handlers_[key]
           if (handler._version_ === event._version_ - 1) {
-            await handler._handler_.handle(event)
+            await handler._handler_.handle(reader._tenant_, event)
             handler._version_ = event._version_
           }
         }

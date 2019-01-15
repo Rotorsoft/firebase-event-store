@@ -81,10 +81,10 @@ class EventCounter extends IEventHandler {
 
   get events () {
     return {
-      [EVENTS.NumbersAdded]: async event => {
+      [EVENTS.NumbersAdded]: async (tenant, event) => {
         return await this.count()
       },
-      [EVENTS.NumbersSubtracted]: async event => {
+      [EVENTS.NumbersSubtracted]: async (tenant, event) => {
         return await this.count()
       }
     }

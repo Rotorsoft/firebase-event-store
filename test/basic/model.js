@@ -52,19 +52,19 @@ class EventCounter extends IEventHandler {
 
   get name () { return this._name_ }
   
-  async count (event) {
+  async count (tenant, event) {
     const path = '/counters/'.concat(this.name)
     let snap = await this.db.doc(path).get()
     let doc = snap.data() || {}
     doc.eventCount = (doc.eventCount || 0) + 1
     await this.db.doc(path).set(doc)
-    if (this.name) console.log(`${this.name} handled event ${event._version_} and count is ${doc.eventCount}`)
+    if (this.name) console.log(`${this.name} handled event ${tenant}-${event._version_} and count is ${doc.eventCount}`)
   }
 
   get events () {
     return {
-      [EVENTS.NumbersAdded]: async event => {
-        return await this.count(event)
+      [EVENTS.NumbersAdded]: async (tenant, event) => {
+        return await this.count(tenant, event)
       }
     }
   }

@@ -22,10 +22,10 @@ module.exports = class IEventHandler {
    * Example:
    *    get events () {
    *      return {
-   *        ['Event1']: async (event) => {
+   *        ['Event1']: async (tenant, event) => {
    *          ...
    *        },
-   *        ['Event2']: async (event) => {
+   *        ['Event2']: async (tenant, event) => {
    *          ...
    *        }
    *      }
@@ -36,10 +36,11 @@ module.exports = class IEventHandler {
   /**
    * Handles event
    * 
-   * @param {Object} event
+   * @param {String} tenant Tenant Id
+   * @param {Object} event Event Object
    */
-  async handle (event) {
+  async handle (tenant, event) {
     const eh = this.events[event._n]
-    if (eh) await eh(event)
+    if (eh) await eh(tenant, event)
   }
 }
