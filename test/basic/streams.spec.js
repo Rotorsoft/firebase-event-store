@@ -13,8 +13,25 @@ class ConsoleTracer extends ITracer {
   }
 
   trace (fn) {
-    const { window, msg, ...args } = fn()
-    console.log('TRACE: '.concat(msg, JSON.stringify(args)))
+    const { stat, method, actor, payload, command, aggregate, aggregateId, expectedVersion, aggregateType, cursors, error, event, handler, ...args } = fn()
+    if (error) console.log(`!!! ERROR: ${error}`)
+    switch (method) {
+      case 'command':
+        console.log(`-> ${command} ${aggregateId} ${expectedVersion} ${JSON.stringify(payload)}`)
+        break
+      case 'loadAggregate':
+        console.log(`   ${aggregateType.name} loaded ${JSON.stringify(aggregate)}`)
+        break
+      case 'commitEvents':
+         console.log(`   ${aggregateType.name} committed ${JSON.stringify(aggregate)}`)
+         break
+      case 'commitCursors':
+        console.log(`   cursors committed ${JSON.stringify(cursors)}`)  
+        break
+      case 'handle':
+        console.log(`   ${handler._handler_.name} handled ${JSON.stringify(event)}`)
+        break 
+    }
   }
 }
 

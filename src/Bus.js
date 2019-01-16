@@ -1,7 +1,7 @@
 'use strict'
 
 const Aggregate = require('./Aggregate')
-const StreamReader = require('./sub/StreamReader')
+const StreamReader = require('./StreamReader')
 const ITracer = require('./ITracer')
 const IEventStore = require('./IEventStore')
 const IEventHandler = require('./IEventHandler')
@@ -30,7 +30,9 @@ function _push (bus, tenant, stream, events = null, load = false) {
   const readers = bus._readers_[tenant]
   if (readers) {
     const reader = readers[stream]
-    if (reader) bus._push_ = bus._push_.then(() => reader._push(events, load))
+    if (reader) {
+      bus._push_ = bus._push_.then(() => reader._push(events, load)).then(() => new Promise(resolve => setImmediate(() => resolve())))
+    }
   }
 }
 
@@ -44,8 +46,8 @@ function _catchup (bus, tenant) {
   }
   const readers = bus._readers_[tenant]
   if (readers) {
-    for(let key of Object.keys(readers)) {
-      bus._catchup_ = bus._catchup_.then(() => loop(readers[key]))
+    for(let reader of Object.values(readers)) {
+      bus._catchup_ = bus._catchup_.then(() => loop(reader))
     }
   }
 }
@@ -104,15 +106,26 @@ module.exports = class Bus {
    * @param {String} stream Stream name
    */
   async poll (tenant, stream) {
-    await _push(this, tenant, stream, null, true)
+    _push(this, tenant, stream, null, true)
+    return new Promise(resolve => {
+      setTimeout(async () => {
+        await this._push_
+        resolve()
+      }, 100)
+    })
   }
 
   /**
    * Flushes bus by waiting for pending pushes
    */
   async flush () {
-    await this._catchup_
-    await this._push_
+    return new Promise(resolve => {
+      setTimeout(async () => {
+        await this._catchup_
+        await this._push_
+        resolve()
+      }, 100)
+    })
   }
 
   /**
@@ -137,22 +150,24 @@ module.exports = class Bus {
     const aggregateType = this._mapper_.map(command)
 
     // load latest aggregate snapshot
-    this._tracer_.trace(() => ({ msg: `actor ${JSON.stringify(actor)} sent ${command} to ${aggregateType.name} ${aggregateId} (v${expectedVersion}) with`, payload }))
+    this._tracer_.trace(() => ({ method: 'command', actor, command, aggregateId, expectedVersion, payload }))
     const aggregate = await this._store_.loadAggregate(actor.tenant, aggregateType, aggregateId)
-    this._tracer_.trace(() => ({ msg: `after loading ${aggregateType.name}`, aggregate }))
+    this._tracer_.trace(() => ({ method: 'loadAggregate', aggregate, aggregateType }))
   
     // handle command
-    await aggregate.commands[command](actor, payload)
+    await aggregate.commands[command](actor, payload, this)
 
-    // assume user wants to act on latest version when not provided
-    if (expectedVersion === -1) expectedVersion = aggregate._aggregate_version_
+    if (aggregate._uncommitted_events_.length) {
+      // assume user wants to act on latest version when not provided
+      if (expectedVersion === -1) expectedVersion = aggregate._aggregate_version_
 
-    // commit events
-    const events = await this._store_.commitEvents(actor, command, aggregate, expectedVersion)
-    this._tracer_.trace(() => ({ msg: 'after committing', events }))
+      // commit events
+      const events = await this._store_.commitEvents(actor, command, aggregate, expectedVersion)
+      this._tracer_.trace(() => ({ method: 'commitEvents', events, actor, command, aggregate, aggregateType }))
 
-    // push new events
-    _push(this, actor.tenant, aggregateType.stream, events)
+      // push new events
+      _push(this, actor.tenant, aggregateType.stream, events)
+    }
 
     return aggregate
   }

@@ -22,3 +22,8 @@
 
 2.1.2
 * Passing tenant id to event handlers
+
+2.1.3
+* Fixed event pushing queue in bus
+* Simplified tracers
+* Simplified stream reader
