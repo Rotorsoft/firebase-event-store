@@ -21,7 +21,7 @@ describe('Basic', () => {
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc123' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId })
-    await bus.flush()
+    await bus.flush('tenant1')
     let counter = await firestore.doc('/counters/counter1').get()
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)

@@ -30,26 +30,9 @@ function _push (bus, tenant, stream, events = null, load = false) {
   const readers = bus._readers_[tenant]
   if (readers) {
     const reader = readers[stream]
-    if (reader) {
-      bus._push_ = bus._push_.then(() => reader._push(events, load)).then(() => new Promise(resolve => setImmediate(() => resolve())))
-    }
+    if (reader) return reader._push(events, load)
   }
-}
-
-function _catchup (bus, tenant) {
-  const loop = reader => {
-    const catchup = async resolve => {
-      if (await reader._catchup()) setTimeout(catchup, 1000, resolve)
-      else resolve()
-    }
-    return new Promise(catchup)
-  }
-  const readers = bus._readers_[tenant]
-  if (readers) {
-    for(let reader of Object.values(readers)) {
-      bus._catchup_ = bus._catchup_.then(() => loop(reader))
-    }
-  }
+  return null
 }
 
 /**
@@ -70,8 +53,6 @@ module.exports = class Bus {
     this._tracer_ = tracer || new ITracer()
     this._mapper_ = new CommandMapper(aggregates)
     this._readers_ = {}
-    this._push_ = Promise.resolve()
-    this._catchup_ = Promise.resolve()
   }
 
   /**
@@ -84,6 +65,7 @@ module.exports = class Bus {
    * @param {Integer} windowSize Stream reader cache window size
    */
   async subscribe (tenant, handlers, windowSize = 100) {
+    await this.flush(tenant)
     const readers = {}
     for (let handler of handlers) {
       if (!(handler instanceof IEventHandler)) throw Err.invalidArguments('handlers')
@@ -96,7 +78,9 @@ module.exports = class Bus {
       reader._subscribe(handler)
     }
     this._readers_[tenant] = readers
-    _catchup(this, tenant)
+    for(let reader of Object.values(readers)) {
+      reader._startCatchupLoop()
+    }
   }
 
   /**
@@ -105,27 +89,22 @@ module.exports = class Bus {
    * @param {String} tenant Tenant Id
    * @param {String} stream Stream name
    */
-  async poll (tenant, stream) {
-    _push(this, tenant, stream, null, true)
-    return new Promise(resolve => {
-      setTimeout(async () => {
-        await this._push_
-        resolve()
-      }, 100)
-    })
+  async poll (tenant, stream = 'main') {
+    await _push(this, tenant, stream, null, true)
   }
 
   /**
    * Flushes bus by waiting for pending pushes
+   * 
+   * @param {String} tenant Tenant Id
    */
-  async flush () {
-    return new Promise(resolve => {
-      setTimeout(async () => {
-        await this._catchup_
-        await this._push_
-        resolve()
-      }, 100)
-    })
+  async flush (tenant) {
+    const readers = this._readers_[tenant]
+    if (readers) {
+      for (let reader of Object.values(readers)) {
+        await reader._flush()
+      }
+    }
   }
 
   /**

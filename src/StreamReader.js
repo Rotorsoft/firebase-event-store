@@ -1,6 +1,21 @@
 'use strict'
 
-async function _push (reader, handlers, events = null, load = false) {
+class PromiseQueue {
+  constructor () {
+    this.queue = Promise.resolve()
+  }
+
+  async push (generator, args) {
+    this.queue = this.queue.then(() => generator(args))
+    await this.queue
+  }
+  
+  async flush () {
+    await this.queue
+  }
+}
+
+const _push = async ({ reader, handlers, events = null, load = false }) => {
   let e = []
   let v = -1
   for (let handler of Object.values(handlers)) {
@@ -59,6 +74,8 @@ module.exports = class StreamReader {
     this._cursors_ = cursors
     this._handlers_ = {}
     this._catchup_ = {}
+    this._currentQueue = new PromiseQueue()
+    this._catchupQueue = new PromiseQueue()
   }
 
   _subscribe (handler) {
@@ -75,23 +92,43 @@ module.exports = class StreamReader {
    * @param {Boolean} load (Optional) flag to force loading window when empty (poll for new events)
    */
   async _push (events, load = false) {
-    const v = await _push(this, this._handlers_, events, load)
+    const v = await this._currentQueue.push(_push, { reader: this, handlers: this._handlers_, events, load })
     if (v > this._version_) this._version_ = v
   }
 
   /**
-   * Pushes catchup window of events to handlers and commits cursors after sync
+   * Pushes catchup window to catchup handlers until current
    */
   async _catchup () {
     if (Object.keys(this._catchup_).length) {
-      let v = await _push(this, this._catchup_)
+      let v = await _push({ reader: this, handlers: this._catchup_ })
       if (v < this._version_) return true // keep going
       
-      // done, move handlers to current window and make final push
+      // done catching up, move handlers to current window and make final push
       Object.assign(this._handlers_, this._catchup_)
       this._catchup_ = {}
       await this._push(null, true)
     }
     return false
+  }
+
+  _startCatchupLoop () {
+    const loop = () => {
+      const catchup = async resolve => {
+        if (await this._catchup()) {
+          setTimeout(catchup, 1000, resolve)
+        }
+        else {
+          resolve()
+        }
+      }
+      return new Promise(catchup)
+    }
+    this._catchupQueue.push(loop, {})
+  }
+
+  async _flush () {
+    await this._catchupQueue.flush()
+    await this._currentQueue.flush()
   }
 }
