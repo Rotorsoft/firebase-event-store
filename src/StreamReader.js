@@ -1,19 +1,6 @@
 'use strict'
 
-class PromiseQueue {
-  constructor () {
-    this.queue = Promise.resolve()
-  }
-
-  async push (generator, args) {
-    this.queue = this.queue.then(() => generator(args))
-    await this.queue
-  }
-  
-  async flush () {
-    await this.queue
-  }
-}
+const PromiseQueue = require('./PromiseQueue')
 
 const _push = async ({ reader, handlers, events = null, load = false }) => {
   let e = []
@@ -27,6 +14,7 @@ const _push = async ({ reader, handlers, events = null, load = false }) => {
     e = await reader._store_.loadEvents(reader._tenant_, reader._name_, v + 1, reader._size_)
     if (e.length) {
       v = e[e.length - 1]._version_
+      if (v > reader._version_) reader._version_ = v
       reader._store_._tracer_.trace(() => ({ method: 'loadEvents', events: e }))
     }
   }
@@ -35,7 +23,7 @@ const _push = async ({ reader, handlers, events = null, load = false }) => {
   if (events && events.length) {
     if (events[0]._version_ === v + 1) {
       e.push(...events)
-      v = e[e.length - 1]._version_
+      reader._version_ = v = e[e.length - 1]._version_
       reader._store_._tracer_.trace(() => ({ stat: 'pushEvents', events }))
     }
   }
@@ -70,8 +58,8 @@ module.exports = class StreamReader {
     this._tenant_ = tenant
     this._name_ = name
     this._size_ = size
-    this._version_ = version
-    this._cursors_ = cursors
+    this._version_ = version || -1
+    this._cursors_ = cursors || {}
     this._handlers_ = {}
     this._catchup_ = {}
     this._currentQueue = new PromiseQueue()
@@ -92,8 +80,7 @@ module.exports = class StreamReader {
    * @param {Boolean} load (Optional) flag to force loading window when empty (poll for new events)
    */
   async _push (events, load = false) {
-    const v = await this._currentQueue.push(_push, { reader: this, handlers: this._handlers_, events, load })
-    if (v > this._version_) this._version_ = v
+    await this._currentQueue.push(_push, { reader: this, handlers: this._handlers_, events, load })
   }
 
   /**

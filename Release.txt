@@ -30,3 +30,6 @@
 
 2.1.4
 * Moved promise queue logic from bus to stream reader so every reader has an independent queue
+
+2.1.5
+* Fixed concurrency issues with promise queue, firestore store using transactions to commit new events

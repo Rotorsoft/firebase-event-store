@@ -30,9 +30,8 @@ function _push (bus, tenant, stream, events = null, load = false) {
   const readers = bus._readers_[tenant]
   if (readers) {
     const reader = readers[stream]
-    if (reader) return reader._push(events, load)
+    if (reader) reader._push(events, load)
   }
-  return null
 }
 
 /**

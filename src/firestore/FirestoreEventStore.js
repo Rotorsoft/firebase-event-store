@@ -3,6 +3,7 @@
 const IEventStore = require('../IEventStore')
 const ITracer = require('../ITracer')
 const Aggregate = require('../Aggregate')
+const PromiseQueue = require('../PromiseQueue')
 const Err = require('../Err')
 
 function aggregatesPath (tenant, aggregateType) {
@@ -37,9 +38,14 @@ class FirestoreSnapshooter {
   }
 
   async save (tenant, aggregate) {
-    const aggregateType = Object.getPrototypeOf(aggregate).constructor
-    const aggRef = this._db_.collection(aggregatesPath(tenant, aggregateType)).doc(aggregate.aggregateId)
-    await aggRef.set(Object.assign({}, aggregate))
+    try {
+      const aggregateType = Object.getPrototypeOf(aggregate).constructor
+      const aggRef = this._db_.collection(aggregatesPath(tenant, aggregateType)).doc(aggregate.aggregateId)
+      await aggRef.set(Object.assign({}, aggregate))
+    }
+    catch (e) {
+      console.log(e)
+    }
   }
 }
 
@@ -49,6 +55,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
     this._db_ = db
     if (snapshots) this._snapshooter_ = new FirestoreSnapshooter(db)
     this._tracer_ = tracer || new ITracer()
+    this._commitQueue_ = new PromiseQueue()
   }
 
   async loadAggregate (tenant, aggregateType, aggregateId) {
@@ -82,46 +89,46 @@ module.exports = class FirestoreEventStore extends IEventStore {
 
   async commitEvents (actor, command, aggregate, expectedVersion) {
     if (aggregate.aggregateVersion !== expectedVersion) throw Err.concurrencyError()
-    const aggregateType = Object.getPrototypeOf(aggregate).constructor
-    if (expectedVersion + 1 >= aggregateType.maxEvents - 1) throw Err.preconditionError('max events reached')
+    const commit = async ({ actor, command, aggregate, expectedVersion }) => {
+      const aggregateType = Object.getPrototypeOf(aggregate).constructor
+      if (expectedVersion + 1 >= aggregateType.maxEvents - 1) throw Err.preconditionError('max events reached')
+      const eventsVersionPadder = new Padder()
+      const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
+      const streamRef = this._db_.doc(streamPath(actor.tenant, aggregateType.stream))
+      const eventsRef = streamRef.collection('events')
+      return await this._db_.runTransaction(async transaction => {
+        const events = []
 
-    const eventsVersionPadder = new Padder()
-    const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
-    const streamRef = this._db_.doc(streamPath(actor.tenant, aggregateType.stream))
-    const streamDoc = await streamRef.get()
-    let version = -1
-    const batch = this._db_.batch()
-    if (!streamDoc.exists) batch.create(streamRef, {})
-    else version = streamDoc.data()._version_
-    const eventsRef = streamRef.collection('events')
-    const events = []
-    for(let event of aggregate._uncommitted_events_) {
-      const eventId = eventsVersionPadder.pad(++version)
-      const eventObject = Object.assign({
-        _u: actor.id,
-        _c: command,
-        _a: aggregate._aggregate_id_,
-        _v: aggregateVersionPadder.pad(++expectedVersion),
-        _version_: version
-      }, event)
-      batch.create(eventsRef.doc(eventId), eventObject)
-      events.push(eventObject)
+        // get stream version
+        const streamDoc = await transaction.get(streamRef)
+        const streamData = streamDoc.data()
+        let version = (streamData && typeof streamData._version_ !== 'undefined') ? streamData._version_ : -1
+        
+        // check aggregate version
+        const paddedExpectedVersion = aggregateVersionPadder.pad(expectedVersion)
+        const check = await eventsRef.where('_a', '==', aggregate.aggregateId).where('_v', '>', paddedExpectedVersion).limit(1).get()
+        if (!check.empty) throw Err.concurrencyError()
+
+        for(let event of aggregate._uncommitted_events_) {
+          const eventId = eventsVersionPadder.pad(++version)
+          const eventObject = Object.assign({
+            _u: actor.id,
+            _c: command,
+            _a: aggregate._aggregate_id_,
+            _v: aggregateVersionPadder.pad(++expectedVersion),
+            _version_: version
+          }, event)
+          await transaction.set(eventsRef.doc(eventId), eventObject)
+          events.push(eventObject)
+        }
+        await transaction.set(streamRef, { _version_: version }, { merge: true })
+        return { events, version: expectedVersion }
+      })
     }
-    batch.update(streamRef, { _version_: version })
-
-    // commit batch
-    try {
-      await batch.commit()
-      aggregate._aggregate_version_ = expectedVersion
-
-      // save snapshot
-      if (this._snapshooter_) await this._snapshooter_.save(actor.tenant, aggregate)
-
-      return events
-    }
-    catch(error) {
-      throw Err.concurrencyError() 
-    }
+    const { events, version } = await this._commitQueue_.push(commit, { actor, command, aggregate, expectedVersion })
+    aggregate._aggregate_version_ = version
+    if (this._snapshooter_) await this._snapshooter_.save(actor.tenant, aggregate)
+    return events
   }
 
   async getStreamData (tenant, stream) {
@@ -132,7 +139,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
   async commitCursors (tenant, stream, handlers) {
     const streamRef = this._db_.doc(streamPath(tenant, stream))
     const cursors = {}
-    await this._db_.runTransaction(async transaction => { // this code may get re-run multiple times if there are conflicts
+    await this._db_.runTransaction(async transaction => {
       const streamDoc = await transaction.get(streamRef)
       const data = streamDoc.data() || {}
       if (!data._cursors_) data._cursors_ = {}
