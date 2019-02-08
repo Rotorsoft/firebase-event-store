@@ -33,3 +33,7 @@
 
 2.1.5
 * Fixed concurrency issues with promise queue, firestore store using transactions to commit new events
+
+2.1.6
+* Implemented in-memory aggregate cache in bus to avoid unnecessary loading
+* Fixed promise queue to enqueue next promise after exception

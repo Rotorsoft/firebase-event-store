@@ -210,10 +210,10 @@ class ConsoleTracer extends ITracer {
     if (stat) {
       const s = this.stats[stat] || {}
       const t = s[aggregateType.name] || {}
-      const e = t[event._c + '-' + event._n] || {} 
+      const e = t[event._c + '-' + event._e] || {} 
       e.time = e.time || Date.now()
       e.count = (e.count || 0) + 1
-      t[event._c + '-' + event._n] = e
+      t[event._c + '-' + event._e] = e
       s[aggregateType.name] = t
       this.stats[stat] = s
     } else {
@@ -333,197 +333,197 @@ After running npm test, the ConsoleTracer displays the following resuts:
  Calculator basic operations
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c1 (v-1) with","payload":{"digit":"1"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"0","result":0,"_aggregate_id_":"c1","_aggregate_version_":-1}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c1","_v":"00","_n":"DigitPressed","digit":"1"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c1","_v":"00","_e":"DigitPressed","digit":"1"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c1 (v0) with","payload":{"operator":"+"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01","result":0,"_aggregate_id_":"c1","_aggregate_version_":0}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c1","_v":"01","_n":"OperatorPressed","operator":"+"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c1","_v":"01","_e":"OperatorPressed","operator":"+"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c1 (v1) with","payload":{"digit":"2"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01","result":0,"_aggregate_id_":"c1","_aggregate_version_":1,"operator":"+","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c1","_v":"02","_n":"DigitPressed","digit":"2"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c1","_v":"02","_e":"DigitPressed","digit":"2"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c1 (v2) with","payload":{"operator":"-"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01","result":0,"_aggregate_id_":"c1","_aggregate_version_":2,"operator":"+","right":"2"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c1","_v":"03","_n":"OperatorPressed","operator":"-"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c1","_v":"03","_e":"OperatorPressed","operator":"-"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c1 (v3) with","payload":{"digit":"3"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"3","result":3,"_aggregate_id_":"c1","_aggregate_version_":3,"operator":"-","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c1","_v":"04","_n":"DigitPressed","digit":"3"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c1","_v":"04","_e":"DigitPressed","digit":"3"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c1 (v4) with","payload":{"operator":"*"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"3","result":3,"_aggregate_id_":"c1","_aggregate_version_":4,"operator":"-","right":"3"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c1","_v":"05","_n":"OperatorPressed","operator":"*"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c1","_v":"05","_e":"OperatorPressed","operator":"*"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c1 (v5) with","payload":{"digit":"5"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"0","result":0,"_aggregate_id_":"c1","_aggregate_version_":5,"operator":"*","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c1","_v":"06","_n":"DigitPressed","digit":"5"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c1","_v":"06","_e":"DigitPressed","digit":"5"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressEquals to Calculator c1 (v6) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"0","result":0,"_aggregate_id_":"c1","_aggregate_version_":6,"operator":"*","right":"5"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c1","_v":"07","_n":"EqualsPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c1","_v":"07","_e":"EqualsPressed"}]}
     √ should compute 1+2-3*5=0
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c2 (v-1) with","payload":{"digit":"4"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"0","result":0,"_aggregate_id_":"c2","_aggregate_version_":-1}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"00","_n":"DigitPressed","digit":"4"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"00","_e":"DigitPressed","digit":"4"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c2 (v0) with","payload":{"operator":"*"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"04","result":0,"_aggregate_id_":"c2","_aggregate_version_":0}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c2","_v":"01","_n":"OperatorPressed","operator":"*"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c2","_v":"01","_e":"OperatorPressed","operator":"*"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c2 (v1) with","payload":{"digit":"4"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"04","result":0,"_aggregate_id_":"c2","_aggregate_version_":1,"operator":"*","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"02","_n":"DigitPressed","digit":"4"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"02","_e":"DigitPressed","digit":"4"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c2 (v2) with","payload":{"operator":"+"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"04","result":0,"_aggregate_id_":"c2","_aggregate_version_":2,"operator":"*","right":"4"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c2","_v":"03","_n":"OperatorPressed","operator":"+"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c2","_v":"03","_e":"OperatorPressed","operator":"+"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c2 (v3) with","payload":{"digit":"2"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"16","result":16,"_aggregate_id_":"c2","_aggregate_version_":3,"operator":"+","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"04","_n":"DigitPressed","digit":"2"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"04","_e":"DigitPressed","digit":"2"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c2 (v4) with","payload":{"digit":"1"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"16","result":16,"_aggregate_id_":"c2","_aggregate_version_":4,"operator":"+","right":"2"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"05","_n":"DigitPressed","digit":"1"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"05","_e":"DigitPressed","digit":"1"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c2 (v5) with","payload":{"operator":"-"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"16","result":16,"_aggregate_id_":"c2","_aggregate_version_":5,"operator":"+","right":"21"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c2","_v":"06","_n":"OperatorPressed","operator":"-"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c2","_v":"06","_e":"OperatorPressed","operator":"-"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c2 (v6) with","payload":{"digit":"1"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"37","result":37,"_aggregate_id_":"c2","_aggregate_version_":6,"operator":"-","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"07","_n":"DigitPressed","digit":"1"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"07","_e":"DigitPressed","digit":"1"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c2 (v7) with","payload":{"digit":"6"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"37","result":37,"_aggregate_id_":"c2","_aggregate_version_":7,"operator":"-","right":"1"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"08","_n":"DigitPressed","digit":"6"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"08","_e":"DigitPressed","digit":"6"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c2 (v8) with","payload":{"operator":"*"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"37","result":37,"_aggregate_id_":"c2","_aggregate_version_":8,"operator":"-","right":"16"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c2","_v":"09","_n":"OperatorPressed","operator":"*"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c2","_v":"09","_e":"OperatorPressed","operator":"*"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c2 (v9) with","payload":{"digit":"3"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"21","result":21,"_aggregate_id_":"c2","_aggregate_version_":9,"operator":"*","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"10","_n":"DigitPressed","digit":"3"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c2","_v":"10","_e":"DigitPressed","digit":"3"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressEquals to Calculator c2 (v10) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"21","result":21,"_aggregate_id_":"c2","_aggregate_version_":10,"operator":"*","right":"3"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c2","_v":"11","_n":"EqualsPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c2","_v":"11","_e":"EqualsPressed"}]}
     √ should compute 4*4+21-16*3=63
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c3 (v-1) with","payload":{"digit":"4"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"0","result":0,"_aggregate_id_":"c3","_aggregate_version_":-1}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"00","_n":"DigitPressed","digit":"4"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"00","_e":"DigitPressed","digit":"4"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c3 (v0) with","payload":{"operator":"*"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"04","result":0,"_aggregate_id_":"c3","_aggregate_version_":0}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c3","_v":"01","_n":"OperatorPressed","operator":"*"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c3","_v":"01","_e":"OperatorPressed","operator":"*"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c3 (v1) with","payload":{"digit":"4"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"04","result":0,"_aggregate_id_":"c3","_aggregate_version_":1,"operator":"*","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"02","_n":"DigitPressed","digit":"4"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"02","_e":"DigitPressed","digit":"4"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c3 (v2) with","payload":{"operator":"+"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"04","result":0,"_aggregate_id_":"c3","_aggregate_version_":2,"operator":"*","right":"4"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c3","_v":"03","_n":"OperatorPressed","operator":"+"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c3","_v":"03","_e":"OperatorPressed","operator":"+"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c3 (v3) with","payload":{"digit":"2"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"16","result":16,"_aggregate_id_":"c3","_aggregate_version_":3,"operator":"+","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"04","_n":"DigitPressed","digit":"2"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"04","_e":"DigitPressed","digit":"2"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c3 (v4) with","payload":{"digit":"1"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"16","result":16,"_aggregate_id_":"c3","_aggregate_version_":4,"operator":"+","right":"2"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"05","_n":"DigitPressed","digit":"1"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"05","_e":"DigitPressed","digit":"1"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c3 (v5) with","payload":{"operator":"-"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"16","result":16,"_aggregate_id_":"c3","_aggregate_version_":5,"operator":"+","right":"21"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c3","_v":"06","_n":"OperatorPressed","operator":"-"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c3","_v":"06","_e":"OperatorPressed","operator":"-"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c3 (v6) with","payload":{"digit":"1"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"37","result":37,"_aggregate_id_":"c3","_aggregate_version_":6,"operator":"-","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"07","_n":"DigitPressed","digit":"1"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"07","_e":"DigitPressed","digit":"1"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c3 (v7) with","payload":{"digit":"6"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"37","result":37,"_aggregate_id_":"c3","_aggregate_version_":7,"operator":"-","right":"1"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"08","_n":"DigitPressed","digit":"6"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"08","_e":"DigitPressed","digit":"6"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c3 (v8) with","payload":{"operator":"*"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"37","result":37,"_aggregate_id_":"c3","_aggregate_version_":8,"operator":"-","right":"16"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c3","_v":"09","_n":"OperatorPressed","operator":"*"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c3","_v":"09","_e":"OperatorPressed","operator":"*"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c3 (v9) with","payload":{"digit":"3"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"21","result":21,"_aggregate_id_":"c3","_aggregate_version_":9,"operator":"*","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"10","_n":"DigitPressed","digit":"3"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c3","_v":"10","_e":"DigitPressed","digit":"3"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressEquals to Calculator c3 (v10) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"21","result":21,"_aggregate_id_":"c3","_aggregate_version_":10,"operator":"*","right":"3"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c3","_v":"11","_n":"EqualsPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c3","_v":"11","_e":"EqualsPressed"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressEquals to Calculator c3 (v11) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"63","result":63,"_aggregate_id_":"c3","_aggregate_version_":11,"operator":"*","right":"3"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c3","_v":"12","_n":"EqualsPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c3","_v":"12","_e":"EqualsPressed"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressEquals to Calculator c3 (v12) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"189","result":189,"_aggregate_id_":"c3","_aggregate_version_":12,"operator":"*","right":"3"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c3","_v":"13","_n":"EqualsPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c3","_v":"13","_e":"EqualsPressed"}]}
     √ should compute 4*4+21-16*3===567
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v-1) with","payload":{"digit":"1"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"0","result":0,"_aggregate_id_":"c4","_aggregate_version_":-1}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"00","_n":"DigitPressed","digit":"1"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"00","_e":"DigitPressed","digit":"1"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDot to Calculator c4 (v0) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01","result":0,"_aggregate_id_":"c4","_aggregate_version_":0}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c4","_v":"01","_n":"DotPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c4","_v":"01","_e":"DotPressed"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v1) with","payload":{"digit":"5"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01.","result":0,"_aggregate_id_":"c4","_aggregate_version_":1}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"02","_n":"DigitPressed","digit":"5"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"02","_e":"DigitPressed","digit":"5"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c4 (v2) with","payload":{"operator":"+"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01.5","result":0,"_aggregate_id_":"c4","_aggregate_version_":2}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c4","_v":"03","_n":"OperatorPressed","operator":"+"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c4","_v":"03","_e":"OperatorPressed","operator":"+"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v3) with","payload":{"digit":"2"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01.5","result":0,"_aggregate_id_":"c4","_aggregate_version_":3,"operator":"+","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"04","_n":"DigitPressed","digit":"2"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"04","_e":"DigitPressed","digit":"2"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDot to Calculator c4 (v4) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01.5","result":0,"_aggregate_id_":"c4","_aggregate_version_":4,"operator":"+","right":"2"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c4","_v":"05","_n":"DotPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c4","_v":"05","_e":"DotPressed"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v5) with","payload":{"digit":"0"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01.5","result":0,"_aggregate_id_":"c4","_aggregate_version_":5,"operator":"+","right":"2."}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"06","_n":"DigitPressed","digit":"0"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"06","_e":"DigitPressed","digit":"0"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c4 (v6) with","payload":{"operator":"-"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"01.5","result":0,"_aggregate_id_":"c4","_aggregate_version_":6,"operator":"+","right":"2.0"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c4","_v":"07","_n":"OperatorPressed","operator":"-"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c4","_v":"07","_e":"OperatorPressed","operator":"-"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v7) with","payload":{"digit":"1"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"3.5","result":3.5,"_aggregate_id_":"c4","_aggregate_version_":7,"operator":"-","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"08","_n":"DigitPressed","digit":"1"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"08","_e":"DigitPressed","digit":"1"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v8) with","payload":{"digit":"1"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"3.5","result":3.5,"_aggregate_id_":"c4","_aggregate_version_":8,"operator":"-","right":"1"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"09","_n":"DigitPressed","digit":"1"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"09","_e":"DigitPressed","digit":"1"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDot to Calculator c4 (v9) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"3.5","result":3.5,"_aggregate_id_":"c4","_aggregate_version_":9,"operator":"-","right":"11"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c4","_v":"10","_n":"DotPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c4","_v":"10","_e":"DotPressed"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v10) with","payload":{"digit":"2"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"3.5","result":3.5,"_aggregate_id_":"c4","_aggregate_version_":10,"operator":"-","right":"11."}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"11","_n":"DigitPressed","digit":"2"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"11","_e":"DigitPressed","digit":"2"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v11) with","payload":{"digit":"2"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"3.5","result":3.5,"_aggregate_id_":"c4","_aggregate_version_":11,"operator":"-","right":"11.2"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"12","_n":"DigitPressed","digit":"2"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"12","_e":"DigitPressed","digit":"2"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c4 (v12) with","payload":{"operator":"+"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"3.5","result":3.5,"_aggregate_id_":"c4","_aggregate_version_":12,"operator":"-","right":"11.22"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c4","_v":"13","_n":"OperatorPressed","operator":"+"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c4","_v":"13","_e":"OperatorPressed","operator":"+"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDot to Calculator c4 (v13) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"-7.720000000000001","result":-7.720000000000001,"_aggregate_id_":"c4","_aggregate_version_":13,"operator":"+","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c4","_v":"14","_n":"DotPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c4","_v":"14","_e":"DotPressed"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v14) with","payload":{"digit":"3"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"-7.720000000000001","result":-7.720000000000001,"_aggregate_id_":"c4","_aggregate_version_":14,"operator":"+","right":"."}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"15","_n":"DigitPressed","digit":"3"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"15","_e":"DigitPressed","digit":"3"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c4 (v15) with","payload":{"digit":"3"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"-7.720000000000001","result":-7.720000000000001,"_aggregate_id_":"c4","_aggregate_version_":15,"operator":"+","right":".3"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"16","_n":"DigitPressed","digit":"3"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c4","_v":"16","_e":"DigitPressed","digit":"3"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressEquals to Calculator c4 (v16) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"-7.720000000000001","result":-7.720000000000001,"_aggregate_id_":"c4","_aggregate_version_":16,"operator":"+","right":".33"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c4","_v":"17","_n":"EqualsPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c4","_v":"17","_e":"EqualsPressed"}]}
     √ should compute 1.5+2.0-11.22+.33=-7.39
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c5 (v-1) with","payload":{"digit":"5"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"0","result":0,"_aggregate_id_":"c5","_aggregate_version_":-1}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"00","_n":"DigitPressed","digit":"5"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"00","_e":"DigitPressed","digit":"5"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDot to Calculator c5 (v0) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"05","result":0,"_aggregate_id_":"c5","_aggregate_version_":0}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c5","_v":"01","_n":"DotPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c5","_v":"01","_e":"DotPressed"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c5 (v1) with","payload":{"digit":"2"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"05.","result":0,"_aggregate_id_":"c5","_aggregate_version_":1}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"02","_n":"DigitPressed","digit":"2"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"02","_e":"DigitPressed","digit":"2"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c5 (v2) with","payload":{"digit":"3"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"05.2","result":0,"_aggregate_id_":"c5","_aggregate_version_":2}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"03","_n":"DigitPressed","digit":"3"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"03","_e":"DigitPressed","digit":"3"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c5 (v3) with","payload":{"operator":"/"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"05.23","result":0,"_aggregate_id_":"c5","_aggregate_version_":3}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c5","_v":"04","_n":"OperatorPressed","operator":"/"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c5","_v":"04","_e":"OperatorPressed","operator":"/"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDot to Calculator c5 (v4) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"05.23","result":0,"_aggregate_id_":"c5","_aggregate_version_":4,"operator":"/","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c5","_v":"05","_n":"DotPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDot","_a":"c5","_v":"05","_e":"DotPressed"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c5 (v5) with","payload":{"digit":"3"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"05.23","result":0,"_aggregate_id_":"c5","_aggregate_version_":5,"operator":"/","right":"."}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"06","_n":"DigitPressed","digit":"3"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"06","_e":"DigitPressed","digit":"3"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c5 (v6) with","payload":{"digit":"3"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"05.23","result":0,"_aggregate_id_":"c5","_aggregate_version_":6,"operator":"/","right":".3"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"07","_n":"DigitPressed","digit":"3"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"07","_e":"DigitPressed","digit":"3"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressOperator to Calculator c5 (v7) with","payload":{"operator":"*"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"05.23","result":0,"_aggregate_id_":"c5","_aggregate_version_":7,"operator":"/","right":".33"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c5","_v":"08","_n":"OperatorPressed","operator":"*"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressOperator","_a":"c5","_v":"08","_e":"OperatorPressed","operator":"*"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressDigit to Calculator c5 (v8) with","payload":{"digit":"2"}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"15.84848484848485","result":15.84848484848485,"_aggregate_id_":"c5","_aggregate_version_":8,"operator":"*","right":null}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"09","_n":"DigitPressed","digit":"2"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressDigit","_a":"c5","_v":"09","_e":"DigitPressed","digit":"2"}]}
 TRACE: {"msg":"actor {\"id\":\"user1\",\"name\":\"user1\",\"tenant\":\"tenant1\",\"roles\":[]} sent PressEquals to Calculator c5 (v9) with","payload":{}}
 TRACE: {"msg":"after loading Calculator","aggregate":{"left":"15.84848484848485","result":15.84848484848485,"_aggregate_id_":"c5","_aggregate_version_":9,"operator":"*","right":"2"}}
-TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c5","_v":"10","_n":"EqualsPressed"}]}
+TRACE: {"msg":"after committing","events":[{"_u":"user1","_c":"PressEquals","_a":"c5","_v":"10","_e":"EqualsPressed"}]}
 {"loadEvent":{"Calculator":{"PressDigit-DigitPressed":{"time":1544711245288,"count":232},"PressOperator-OperatorPressed":{"time":1544711245289,"count":106},"PressEquals-EqualsPressed":{"time":1544711245344,"count":3},"PressDot-DotPressed":{"time":1544711245347,"count":52}}}}
     √ should compute 5.23/.33*2=31.6969696969697
 

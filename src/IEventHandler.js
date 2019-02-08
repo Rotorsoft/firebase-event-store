@@ -40,7 +40,7 @@ module.exports = class IEventHandler {
    * @param {Object} event Event Object
    */
   async handle (tenant, event) {
-    const eh = this.events[event._n]
+    const eh = this.events[event._e]
     if (eh) await eh(tenant, event)
   }
 }

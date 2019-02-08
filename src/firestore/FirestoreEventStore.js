@@ -41,7 +41,7 @@ class FirestoreSnapshooter {
     try {
       const aggregateType = Object.getPrototypeOf(aggregate).constructor
       const aggRef = this._db_.collection(aggregatesPath(tenant, aggregateType)).doc(aggregate.aggregateId)
-      await aggRef.set(Object.assign({}, aggregate))
+      await aggRef.set(aggregate.clone())
     }
     catch (e) {
       console.log(e)
@@ -69,7 +69,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
       const events = await eventsRef.where('_a', '==', aggregate.aggregateId).where('_v', '>=', versionPadded).get()
       events.forEach(doc => {
         const event = Object.freeze(doc.data())
-        aggregate.loadEvent(event)
+        aggregate._loadEvent(event)
         this._tracer_.trace(() => ({ stat: 'loadEvent', aggregateType, event }))
       })
       return aggregate
@@ -92,6 +92,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
     const commit = async ({ actor, command, aggregate, expectedVersion }) => {
       const aggregateType = Object.getPrototypeOf(aggregate).constructor
       if (expectedVersion + 1 >= aggregateType.maxEvents - 1) throw Err.preconditionError('max events reached')
+      
       const eventsVersionPadder = new Padder()
       const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
       const streamRef = this._db_.doc(streamPath(actor.tenant, aggregateType.stream))

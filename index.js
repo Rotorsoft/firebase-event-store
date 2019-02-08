@@ -20,7 +20,7 @@ module.exports = {
   /**
    * Initializes firebase store and creates the bus
    */
-  setup: (firebase, aggregates, { snapshots = true, tracer = null } = {}) => {
+  setup: (firebase, aggregates, { snapshots = true, tracer = null, CACHE_SIZE = 10 } = {}) => {
     if (!firebase) throw Err.missingArguments('firebase')
     if (!firebase.apps) throw Err.invalidArguments('firebase.apps')
     if (!aggregates) throw Err.missingArguments('aggregates')
@@ -31,7 +31,7 @@ module.exports = {
       firebase.initializeApp()
       const firestore = firebase.firestore()
       if (firestore.settings) firestore.settings({ timestampsInSnapshots: true })
-      _bus_ = new Bus(new FirestoreEventStore(firestore, snapshots, tracer), aggregates, tracer)
+      _bus_ = new Bus(new FirestoreEventStore(firestore, snapshots, tracer), aggregates, tracer, CACHE_SIZE)
     }
     return _bus_
   }

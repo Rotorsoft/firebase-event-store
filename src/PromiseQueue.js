@@ -6,7 +6,7 @@ module.exports = class PromiseQueue {
   }
 
   async push (generator, args) {
-    this.queue = this.queue.then(() => generator(args))
+    this.queue = this.queue.then(() => generator(args)).catch(() => generator(args))
     return await this.queue
   }
   

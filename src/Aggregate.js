@@ -72,10 +72,10 @@ module.exports = class Aggregate {
 
   /**
    * Loads event object when replaying aggregate
-   * @param {Object} event - must have property _n with event name
+   * @param {Object} event - must have property _e with event name
    */
-  loadEvent (event) {
-    this.events[event._n](event)
+  _loadEvent (event) {
+    this.events[event._e](event)
     this._aggregate_version_++
   }
 
@@ -85,8 +85,17 @@ module.exports = class Aggregate {
    * @param {Object} payload event payload
    */
   addEvent (name, payload) {
-    const event = Object.freeze(Object.assign({_n: name }, payload))
+    const event = Object.freeze(Object.assign({ _e: name }, payload))
     this.events[name](event)
     this._uncommitted_events_.push(event)
+  }
+
+  /**
+   * Clones aggregate for storage/caching purposes. Override if deep cloning is needed
+   * 
+   * @returns {Object} Object with aggregate data
+   */
+  clone () {
+    return Object.assign({}, this)
   }
 }

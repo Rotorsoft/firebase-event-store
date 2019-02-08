@@ -26,6 +26,36 @@ class CommandMapper {
   }
 }
 
+class Cache {
+  constructor(size = 10) {
+    this._size_ = size
+    this._cache_ = new Map()
+  }
+
+  get (key) {
+    if (!this._size_) return null
+
+    const item = this._cache_.get(key)
+    if (item) {
+      this._cache_.delete(key)
+      this._cache_.set(key, item)
+    }
+    return item
+  }
+
+  set (key, item) {
+    if (!this._size_) return
+
+    if (this._cache_.has(key)) this._cache_.delete(key)
+    this._cache_.set(key, item)
+
+    while (this._cache_.size > this._size_) {
+      const first = this._cache_.keys().next().value
+      this._cache_.delete(first)
+    }
+  }
+}
+
 function _push (bus, tenant, stream, events = null, load = false) {
   const readers = bus._readers_[tenant]
   if (readers) {
@@ -41,17 +71,19 @@ module.exports = class Bus {
   /**
    * Bus constructor
    * 
-   * @param {IEventStore} store
-   * @param {Aggregate[]} aggregates
-   * @param {ITracer} tracer
+   * @param {IEventStore} store The event store
+   * @param {Aggregate[]} aggregates Array of aggregates supported by this instance
+   * @param {ITracer} tracer Tracer module
+   * @param {Integer} CACHE_SIZE Size of aggregate cache
    */
-  constructor (store, aggregates, tracer = null) {
+  constructor (store, aggregates, tracer = null, CACHE_SIZE = 10) {
     if (!(store instanceof IEventStore)) throw Err.invalidArguments('store')
     if (tracer && !(tracer instanceof ITracer)) throw Err.invalidArguments('tracer')
     this._store_ = store
     this._tracer_ = tracer || new ITracer()
     this._mapper_ = new CommandMapper(aggregates)
     this._readers_ = {}
+    this._cache_ = new Cache(CACHE_SIZE)
   }
 
   /**
@@ -125,12 +157,25 @@ module.exports = class Bus {
     
     // get aggregate type from commands map
     if (expectedVersion >= 0 && !aggregateId) throw Err.missingArguments('aggregateId')
-    const aggregateType = this._mapper_.map(command)
 
-    // load latest aggregate snapshot
+    const aggregateType = this._mapper_.map(command)
     this._tracer_.trace(() => ({ method: 'command', actor, command, aggregateId, expectedVersion, payload }))
-    const aggregate = await this._store_.loadAggregate(actor.tenant, aggregateType, aggregateId)
-    this._tracer_.trace(() => ({ method: 'loadAggregate', aggregate, aggregateType }))
+
+    // load aggregate
+    let aggregate
+
+    // try cache first
+    const key = aggregateType.name.concat('.', aggregateId)
+    if (aggregateId && expectedVersion >= 0) {
+      const copy = this._cache_.get(key)
+      if (copy) aggregate = Aggregate.create(aggregateType, copy)
+    }
+
+    // load from store if not found in cache or incorrect version
+    if (!(aggregate && aggregate._aggregate_version_ === expectedVersion)) {
+      aggregate = await this._store_.loadAggregate(actor.tenant, aggregateType, aggregateId)
+      this._tracer_.trace(() => ({ method: 'loadAggregate', aggregate, aggregateType }))
+    }
   
     // handle command
     await aggregate.commands[command](actor, payload, this)
@@ -142,6 +187,9 @@ module.exports = class Bus {
       // commit events
       const events = await this._store_.commitEvents(actor, command, aggregate, expectedVersion)
       this._tracer_.trace(() => ({ method: 'commitEvents', events, actor, command, aggregate, aggregateType }))
+
+      // cache aggregate
+      this._cache_.set(key, aggregate.clone())
 
       // push new events
       _push(this, actor.tenant, aggregateType.stream, events)

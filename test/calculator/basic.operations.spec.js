@@ -18,10 +18,10 @@ class ConsoleTracer extends ITracer {
     if (stat === 'loadEvent') {
       const s = this.stats[stat] || {}
       const t = s[aggregateType.name] || {}
-      const e = t[event._c + '-' + event._n] || {} 
+      const e = t[event._c + '-' + event._e] || {} 
       e.time = e.time || Date.now()
       e.count = (e.count || 0) + 1
-      t[event._c + '-' + event._n] = e
+      t[event._c + '-' + event._e] = e
       s[aggregateType.name] = t
       this.stats[stat] = s
     } else {

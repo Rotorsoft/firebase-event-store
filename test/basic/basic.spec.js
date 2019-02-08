@@ -16,7 +16,7 @@ describe('Basic', () => {
     await bus.subscribe('tenant1', [new EventCounter(firestore, 'counter1'), new EventCounter(firestore, 'counter2')])
   })
 
-  it('should accumulate numbers to 12', async () => {
+  it('should accumulate numbers to 12 on calc123', async () => {
     let calc
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc123' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId })
@@ -32,6 +32,7 @@ describe('Basic', () => {
     let calc 
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2 })
     calc = await bus.command(actor1, 'AddNumbers', { aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion, number1: 3, number2: 4 })
+    await bus.flush('tenant1')
     calc.aggregateVersion.should.equal(1)
     calc.sum.should.equal(10)
   })
@@ -42,18 +43,20 @@ describe('Basic', () => {
       calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })
       calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
       calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: 0 })
+      await bus.flush('tenant1')
     }
     catch(error) {
       error.message.should.be.equal('concurrency error')
     }
   })
 
-  it('should accumulate numbers to 12', async () => {
+  it('should accumulate numbers to 12 on calc9', async () => {
     const iters = 12
     let calc = await bus.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: 'calc9' })
     for (let i = 0; i < iters; i++) {
       calc = await bus.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
     }
+    await bus.flush('tenant1')
     calc.aggregateVersion.should.equal(iters)
     calc.sum.should.equal(iters + 1)
   })
@@ -74,7 +77,7 @@ describe('Basic', () => {
 
 describe('Basic without Snapshooter', () => {
   before (() => {
-    bus = setup([Calculator], false)
+    bus = setup([Calculator], false, null, 0)
     firestore = firebase.firestore()
     bus.subscribe('tenant1', [new EventCounter(firestore)])
   })
@@ -84,6 +87,7 @@ describe('Basic without Snapshooter', () => {
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc100' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
+    await bus.flush('tenant1')
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)
   })
@@ -92,6 +96,7 @@ describe('Basic without Snapshooter', () => {
     let calculator
     calculator = await bus.command(actor1, 'AddNumbers', { number1: 2, number2: 2 })
     calculator = await bus.command(actor1, 'SubtractNumbers', { aggregateId: calculator.aggregateId, number1: 1, number2: 0 })
+    await bus.flush('tenant1')
     calculator.aggregateVersion.should.equal(1)
     calculator.aggregateId.length.should.be.at.least(10)
     calculator.sum.should.equal(3)
