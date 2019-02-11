@@ -66,7 +66,10 @@ module.exports = class FirestoreEventStore extends IEventStore {
       const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
       const versionPadded = aggregateVersionPadder.pad(aggregate.aggregateVersion + 1)
       const eventsRef = this._db_.collection(streamPath(tenant, aggregateType.stream).concat('/events'))
-      const events = await eventsRef.where('_a', '==', aggregate.aggregateId).where('_v', '>=', versionPadded).get()
+      const events = await eventsRef
+        .where('_t', '==', aggregateType.name)
+        .where('_a', '==', aggregate.aggregateId)
+        .where('_v', '>=', versionPadded).get()
       events.forEach(doc => {
         const event = Object.freeze(doc.data())
         aggregate._loadEvent(event)
@@ -107,7 +110,10 @@ module.exports = class FirestoreEventStore extends IEventStore {
         
         // check aggregate version
         const paddedExpectedVersion = aggregateVersionPadder.pad(expectedVersion)
-        const check = await eventsRef.where('_a', '==', aggregate.aggregateId).where('_v', '>', paddedExpectedVersion).limit(1).get()
+        const check = await eventsRef
+          .where('_t', '==', aggregateType.name)
+          .where('_a', '==', aggregate.aggregateId)
+          .where('_v', '>', paddedExpectedVersion).limit(1).get()
         if (!check.empty) throw Err.concurrencyError()
 
         for(let event of aggregate._uncommitted_events_) {
@@ -115,6 +121,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
           const eventObject = Object.assign({
             _u: actor.id,
             _c: command,
+            _t: aggregateType.name,
             _a: aggregate._aggregate_id_,
             _v: aggregateVersionPadder.pad(++expectedVersion),
             _version_: version

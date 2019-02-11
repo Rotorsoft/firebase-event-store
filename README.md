@@ -11,6 +11,45 @@ So far the results have been positive. The store supports multiple tenants as we
 
 [Sat Jan 5 2019] - Released code implementing a Kafka like pub/sub messaging mechanism where consumers can subscribe to the bus at any time and wait for events to be pushed by stream readers. After events are handled succesfully, the reading position (cursor) of each consumer (event handler) is stored with the stream to avoid resending events. Event handlers must be idempotent though, since there is always a chance of events being pushed more than once.
 
+[Feb 10, 2019] - After initializing a project via the firebase CLI, the following rules and indexes should be published in order to secure the database from external writes and allow event queries to work.
+
+##### firestore.rules
+
+````json 
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // only admin can write via api
+    match /tenants/{tenant} {
+      allow write: if false;
+      allow read: if request.auth != null && request.auth.uid != null && request.auth.token != null && request.auth.token.tenant == tenant;
+    }
+    
+    // only admin can write via api
+    match /tenants/{tenant}/{document=**} {
+      allow write: if false;
+      allow read: if request.auth != null && request.auth.uid != null && request.auth.token != null && request.auth.token.tenant == tenant;
+    }
+  }
+}
+````
+##### firestore.indexes.json
+
+````json
+{
+  "indexes": [
+    {
+      "collectionId": "events",
+      "fields": [
+        { "fieldPath": "_t", "mode": "ASCENDING" },
+        { "fieldPath": "_a", "mode": "ASCENDING" },
+        { "fieldPath": "_v", "mode": "ASCENDING" }
+      ]
+    }
+  ]
+}
+````
+
 #### Figure 1. CQRS - Command Query Resposibility Segregation Reference Architecture
 ![Figure 1](/assets/CQRSArchitecture.PNG)
 

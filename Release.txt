@@ -37,3 +37,6 @@
 2.1.6
 * Implemented in-memory aggregate cache in bus to avoid unnecessary loading
 * Fixed promise queue to enqueue next promise after exception
+
+2.1.7
+* Added _t (aggregate type) property to events to allow same aggregate id on multiple types in same stream
