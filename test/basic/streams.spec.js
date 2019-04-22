@@ -2,6 +2,7 @@
 
 const { setup, firebase, ITracer } = require('../setup')
 const { Calculator, EventCounter } = require('./model')
+const FirebaseEventStream = require('../../src/firestore/FirestoreEventStream')
 
 let bus, firestore
 
@@ -40,7 +41,7 @@ describe('Streams', () => {
     bus = setup([Calculator], true, new ConsoleTracer())
     firestore = firebase.firestore()
     firestore.children = []
-    await bus.subscribe('tenant1', [new EventCounter(firestore, 'counter11')])
+    await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 100)], [new EventCounter(firestore, 'counter11')])
   })
 
   it('should catch up counter2 in current window', async () => {
@@ -48,14 +49,16 @@ describe('Streams', () => {
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'c1222' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId })
+    await bus.poll('tenant1', 'main')
     await bus.flush('tenant1')
     let counter1 = await firestore.doc('/counters/counter11').get()
     counter1.data().eventCount.should.equal(3)
     
-    await bus.subscribe('tenant1', [new EventCounter(firestore, 'counter11'), new EventCounter(firestore, 'counter21')])
+    await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 100)], [new EventCounter(firestore, 'counter11'), new EventCounter(firestore, 'counter21')])
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'c1222' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId })
+    await bus.poll('tenant1', 'main')
     await bus.flush('tenant1')
     counter1 = await firestore.doc('/counters/counter11').get()
     counter1.data().eventCount.should.equal(6)
@@ -68,12 +71,15 @@ describe('Streams', () => {
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId })
+    await bus.poll('tenant1', 'main')
     await bus.flush('tenant1')
     
-    await bus.subscribe('tenant1', [new EventCounter(firestore, 'counter11'), new EventCounter(firestore, 'counter21'), new EventCounter(firestore, 'counter31')], 5)
+    await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 5)], [new EventCounter(firestore, 'counter11'), new EventCounter(firestore, 'counter21'), new EventCounter(firestore, 'counter31')])
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId })
+    await bus.poll('tenant1', 'main')
+    await bus.poll('tenant1', 'main')
     await bus.flush('tenant1')
     let counter1 = await firestore.doc('/counters/counter11').get()
     counter1.data().eventCount.should.equal(12)
@@ -87,9 +93,10 @@ describe('Streams', () => {
     let calc
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     await bus.flush('tenant1')
-    
-    await bus.subscribe('tenant1', [new EventCounter(firestore, 'counter41')], 5)
+    await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 5)], [new EventCounter(firestore, 'counter41')])
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
+    await bus.poll('tenant1', 'main')
+    await bus.poll('tenant1', 'main')
     await bus.flush('tenant1')
 
     let counter4 = await firestore.doc('/counters/counter41').get()
@@ -100,10 +107,16 @@ describe('Streams', () => {
     let calc
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     let bus2 = setup([Calculator])
-    await bus.subscribe('tenant1', [new EventCounter(firestore, 'counter51')], 5)
-    await bus2.subscribe('tenant1', [new EventCounter(firestore, 'counter61')], 8)
+    await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 5)], [new EventCounter(firestore, 'counter51')])
+    await bus2.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 8)], [new EventCounter(firestore, 'counter61')])
     calc = await bus2.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
+    await bus.poll('tenant1', 'main')
+    await bus.poll('tenant1', 'main')
+    await bus.poll('tenant1', 'main')
+    await bus2.poll('tenant1', 'main')
+    await bus2.poll('tenant1', 'main')
+    await bus2.poll('tenant1', 'main')
     await bus.flush('tenant1')
     await bus2.flush('tenant1')
 
@@ -117,7 +130,7 @@ describe('Streams', () => {
 
   it('should poll until done', async () => {
     let bus3 = setup([Calculator], true, new ConsoleTracer())
-    await bus3.subscribe('tenant1', [new EventCounter(firestore, 'counter71')], 20)
+    await bus3.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 20)], [new EventCounter(firestore, 'counter71')])
     await bus3.poll('tenant1', 'main')
     await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     await bus3.poll('tenant1', 'main')

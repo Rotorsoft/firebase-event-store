@@ -2,6 +2,7 @@
 
 const Aggregate = require('../../src/Aggregate')
 const FirestoreEventStore = require('../../src/firestore/FirestoreEventStore')
+const FirebaseEventStream = require('../../src/firestore/FirestoreEventStream')
 const Bus = require('../../src/Bus')
 const { Calculator } = require('./model')
 const { InvalidAggregate, InvalidAggregate2, InvalidHandler } = require('./invalid')
@@ -122,7 +123,7 @@ describe('Not implemented', () => {
 
   it('should throw not implemented name', async () => {
     try {
-      await bus.subscribe('tenant1', [new InvalidHandler()])
+      await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 100)], [new InvalidHandler()])
       await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
@@ -141,16 +142,6 @@ describe('Err handling 2', () => {
     }
   })
 
-  it('should throw invalid arguments: handler', async () => {
-    try {
-      let bus2 = new Bus(new FirestoreEventStore(firestore), [])
-      await bus2.subscribe('tenant1', [new Object()])
-    }
-    catch(error) {
-      error.message.should.equal('invalid arguments: handlers')
-    }
-  })
-  
   it('should throw not implemented commands', async () => {
     try {
       const bus = storeSetup(firebase, [InvalidAggregate])

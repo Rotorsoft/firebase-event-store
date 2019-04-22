@@ -1,7 +1,6 @@
 'use strict'
 
 const Aggregate = require('./Aggregate')
-const StreamReader = require('./StreamReader')
 const ITracer = require('./ITracer')
 const IEventStore = require('./IEventStore')
 const IEventHandler = require('./IEventHandler')
@@ -56,14 +55,6 @@ class Cache {
   }
 }
 
-function _push (bus, tenant, stream, events = null, load = false) {
-  const readers = bus._readers_[tenant]
-  if (readers) {
-    const reader = readers[stream]
-    if (reader) reader._push(events, load)
-  }
-}
-
 /**
  * Message Bus
  */
@@ -82,60 +73,8 @@ module.exports = class Bus {
     this._store_ = store
     this._tracer_ = tracer || new ITracer()
     this._mapper_ = new CommandMapper(aggregates)
-    this._readers_ = {}
     this._cache_ = new Cache(CACHE_SIZE)
-  }
-
-  /**
-   * Subscribes event handlers with bus
-   * New handlers catch up while current handlers keep receiving new events
-   * in real time
-   * 
-   * @param {String} tenant Tenant id
-   * @param {IEventHandler[]} handlers Event handlers
-   * @param {Integer} windowSize Stream reader cache window size
-   */
-  async subscribe (tenant, handlers, windowSize = 100) {
-    await this.flush(tenant)
-    const readers = {}
-    for (let handler of handlers) {
-      if (!(handler instanceof IEventHandler)) throw Err.invalidArguments('handlers')
-      let reader = readers[handler.stream]
-      if (!reader) {
-        const data = await this._store_.getStreamData(tenant, handler.stream)
-        reader = new StreamReader(this._store_, tenant, handler.stream, windowSize, data._version_, data._cursors_)
-        readers[handler.stream] = reader
-      }
-      reader._subscribe(handler)
-    }
-    this._readers_[tenant] = readers
-    for(let reader of Object.values(readers)) {
-      reader._startCatchupLoop()
-    }
-  }
-
-  /**
-   * Polls stream for new events to push
-   * 
-   * @param {String} tenant Tenant Id
-   * @param {String} stream Stream name
-   */
-  async poll (tenant, stream = 'main') {
-    await _push(this, tenant, stream, null, true)
-  }
-
-  /**
-   * Flushes bus by waiting for pending pushes
-   * 
-   * @param {String} tenant Tenant Id
-   */
-  async flush (tenant) {
-    const readers = this._readers_[tenant]
-    if (readers) {
-      for (let reader of Object.values(readers)) {
-        await reader._flush()
-      }
-    }
+    this._streams_ = {}
   }
 
   /**
@@ -190,11 +129,65 @@ module.exports = class Bus {
 
       // cache aggregate
       this._cache_.set(key, aggregate.clone())
-
-      // push new events
-      _push(this, actor.tenant, aggregateType.stream, events)
     }
 
     return aggregate
+  }
+
+  /**
+   * Subscribes event handlers with bus
+   * New handlers catch up while current handlers keep receiving new events
+   * in real time
+   * @param {IEventStream[]} streams Array of event streams
+   * @param {IEventHandler[]} handlers Array of event handlers
+   */
+  async subscribe (streams, handlers) {
+    for (let stream of streams) {
+      for (let handler of handlers) {
+        if (handler instanceof IEventHandler && stream._name_ === handler.stream) await stream.subscribe(handler)
+      }
+      this._streams_[stream._tenant_] = this._streams_[stream._tenant_] || {}
+      this._streams_[stream._tenant_][stream._name_] = stream
+      stream.catchup()
+    }
+  }
+
+  /**
+   * Pushes event to stream
+   * @param {String} tenant Tenant id
+   * @param {String} stream Stream name
+   * @param {Object} event Event object
+   * @param {Boolean} load True to load window
+   */
+  async push (tenant, stream, event = null, load = false) {
+    const streams = this._streams_[tenant]
+    if (streams) {
+      const s = streams[stream]
+      if (s) s.push(event, load)
+    }
+  }
+
+  /**
+   * Polls stream for new events to push
+   * 
+   * @param {String} tenant Tenant id
+   * @param {String} stream Stream name
+   */
+  async poll (tenant, stream = 'main') {
+    await this.push(tenant, stream, null, true)
+  }
+
+  /**
+   * Flushes tenant by waiting for pending pushes
+   * 
+   * @param {String} tenant Tenant Id
+   */
+  async flush (tenant) {
+    const streams = this._streams_[tenant]
+    if (streams) {
+      for (let stream of Object.values(streams)) {
+        await stream.flush()
+      }
+    }
   }
 }

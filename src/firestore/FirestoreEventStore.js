@@ -27,40 +27,19 @@ class Padder {
   }
 }
 
-class FirestoreSnapshooter {
-  constructor (db) {
-    this._db_ = db
-  }
-
-  async load (tenant, aggregateType, aggregateId) {
-    const doc = await this._db_.collection(aggregatesPath(tenant, aggregateType)).doc(aggregateId).get()
-    return doc.exists ? Aggregate.create(aggregateType, doc.data()) : null
-  }
-
-  async save (tenant, aggregate) {
-    try {
-      const aggregateType = Object.getPrototypeOf(aggregate).constructor
-      const aggRef = this._db_.collection(aggregatesPath(tenant, aggregateType)).doc(aggregate.aggregateId)
-      await aggRef.set(aggregate.clone())
-    }
-    catch (e) {
-      console.log(e)
-    }
-  }
-}
-
 module.exports = class FirestoreEventStore extends IEventStore {
   constructor (db, snapshots = true, tracer = null) {
     super()
     this._db_ = db
-    if (snapshots) this._snapshooter_ = new FirestoreSnapshooter(db)
+    this._snapshots_ = snapshots || false
     this._tracer_ = tracer || new ITracer()
     this._commitQueue_ = new PromiseQueue()
   }
 
   async loadAggregate (tenant, aggregateType, aggregateId) {
     if (aggregateId) {
-      const aggregate = (this._snapshooter_ ? await this._snapshooter_.load(tenant, aggregateType, aggregateId) : null) || Aggregate.create(aggregateType, { _aggregate_id_: aggregateId })
+      const doc = this._snapshots_ ? await this._db_.collection(aggregatesPath(tenant, aggregateType)).doc(aggregateId).get() : null
+      const aggregate = Aggregate.create(aggregateType, doc && doc.exists ? doc.data() : { _aggregate_id_: aggregateId })
       
       // load events that ocurred after snapshot was taken
       const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
@@ -82,14 +61,6 @@ module.exports = class FirestoreEventStore extends IEventStore {
     return Aggregate.create(aggregateType, { _aggregate_id_: newAggRef.id })
   }
 
-  async loadEvents (tenant, stream, fromVersion, limit) {
-    const eventsRef = this._db_.collection(streamPath(tenant, stream).concat('/events'))
-    const query = await eventsRef.where('_version_', '>=', fromVersion).limit(limit).get()
-    const events = []
-    query.forEach(doc => { events.push(Object.freeze(doc.data())) })
-    return events
-  }
-
   async commitEvents (actor, command, aggregate, expectedVersion) {
     if (aggregate.aggregateVersion !== expectedVersion) throw Err.concurrencyError()
     const commit = async ({ actor, command, aggregate, expectedVersion }) => {
@@ -98,6 +69,7 @@ module.exports = class FirestoreEventStore extends IEventStore {
       
       const eventsVersionPadder = new Padder()
       const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
+      const aggregateRef = this._db_.collection(aggregatesPath(actor.tenant, aggregateType)).doc(aggregate.aggregateId)
       const streamRef = this._db_.doc(streamPath(actor.tenant, aggregateType.stream))
       const eventsRef = streamRef.collection('events')
       return await this._db_.runTransaction(async transaction => {
@@ -130,35 +102,11 @@ module.exports = class FirestoreEventStore extends IEventStore {
           events.push(eventObject)
         }
         await transaction.set(streamRef, { _version_: version }, { merge: true })
-        return { events, version: expectedVersion }
+        aggregate._aggregate_version_ = expectedVersion
+        if (this._snapshots_) await transaction.set(aggregateRef, aggregate.clone())
+        return events
       })
     }
-    const { events, version } = await this._commitQueue_.push(commit, { actor, command, aggregate, expectedVersion })
-    aggregate._aggregate_version_ = version
-    if (this._snapshooter_) await this._snapshooter_.save(actor.tenant, aggregate)
-    return events
-  }
-
-  async getStreamData (tenant, stream) {
-    const streamDoc = await this._db_.doc(streamPath(tenant, stream)).get()
-    return streamDoc.data() || { _version_: -1, _cursors_: {} }
-  }
-
-  async commitCursors (tenant, stream, handlers) {
-    const streamRef = this._db_.doc(streamPath(tenant, stream))
-    const cursors = {}
-    await this._db_.runTransaction(async transaction => {
-      const streamDoc = await transaction.get(streamRef)
-      const data = streamDoc.data() || {}
-      if (!data._cursors_) data._cursors_ = {}
-      for (let key of Object.keys(handlers)) {
-        const handler = handlers[key]
-        const oldVersion = data._cursors_[key] || 0
-        const newVersion = handler._version_
-        cursors[key] = newVersion > oldVersion ? newVersion : oldVersion
-      }
-      await transaction.set(streamRef, { _cursors_: cursors }, { merge: true })
-    })
-    return cursors
+    return await this._commitQueue_.push(commit, { actor, command, aggregate, expectedVersion })
   }
 }

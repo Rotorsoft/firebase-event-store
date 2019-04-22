@@ -1,7 +1,7 @@
 firebase-event-store [![Build Status](https://travis-ci.org/Rotorsoft/firebase-event-store.svg?branch=master)](https://travis-ci.org/Rotorsoft/firebase-event-store) [![Coverage Status](https://coveralls.io/repos/github/Rotorsoft/firebase-event-store/badge.svg?branch=master)](https://coveralls.io/github/Rotorsoft/firebase-event-store?branch=master)
 =========
 
-I started this project as a proof of concept, trying to figure out if a low cost (practically free) persistance platform in the cloud could support a couple of mobile applications I developed this year.
+I started this project as a proof of concept, trying to figure out if a low cost cloud based platform could support a couple of mobile applications I developed this year.
 
 [Cloud Firestore](https://firebase.google.com/docs/firestore/) is an inexpensive Non-SQL cloud database to store and sync data for mobile, web, and server development. Since most of my web applications are following the [CQRS](http://codebetter.com/gregyoung/2012/09/09/cqrs-is-not-an-architecture-2/) pattern proposed by Greg Young around 2010 (Figure 1), I was curious about using Firestore Documents and Collections to model my Event Streams, Aggregate Snapshots, and Projections. After some tinkering with the APIs, and a few beers, the Command Side started to emerge. 
 
@@ -62,7 +62,7 @@ service cloud.firestore {
 A trivial aggregate and event handler:
 
 ```javascript
-const { setup, Aggregate, IEventHandler, Err } = require('@rotorsoft/firebase-event-store')
+const { setup, Aggregate, IEventHandler, Err, FirebaseEventStream } = require('@rotorsoft/firebase-event-store')
 
 const EVENTS = {
   NumbersAdded: 'NumbersAdded',
@@ -132,7 +132,7 @@ class EventCounter extends IEventHandler {
 
 const firebase = //TODO get firebase ref
 const bus = setup(firebase, [Calculator])
-await bus.subscribe('tenant1', [new EventCounter(docStore)])
+await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 100)], [new EventCounter(docStore)])
 
 let actor = { id: 'user1', name: 'actor 1', tenant: 'tenant1', roles: ['manager', 'user'] }
 let calc = await bus.command(actor, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })

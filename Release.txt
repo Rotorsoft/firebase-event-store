@@ -40,3 +40,8 @@
 
 2.1.7
 * Added _t (aggregate type) property to events to allow same aggregate id on multiple types in same stream
+
+3.0.0
+* Separated event streams from store (IEventStream, FirestoreEventStream)
+* Simplified stream subscription in bus. Commands wont push events anymore, so a polling mechanism or event listener must be
+  implemented (Firestore onCreate trigger) to push new events to handlers
