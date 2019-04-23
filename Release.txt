@@ -52,3 +52,6 @@
 
 3.0.2
 * Moved ref in stream to local variable and passing tracer
+
+3.0.3
+* Fixed cursors and version when undefined
