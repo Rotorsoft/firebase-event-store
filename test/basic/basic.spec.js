@@ -4,7 +4,7 @@ const { setup, firebase } = require('../setup')
 const { Calculator, EventCounter } = require('./model')
 const FirebaseEventStream = require('../../src/firestore/FirestoreEventStream')
 
-let bus, firestore
+let bus, firestore, stream, handlers
 
 process.on('unhandledRejection', error => { console.log('unhandledRejection', error) })
 
@@ -14,7 +14,8 @@ describe('Basic', () => {
   before (async () => {
     bus = setup([Calculator])
     firestore = firebase.firestore()
-    await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 100)], [new EventCounter(firestore, 'counter1'), new EventCounter(firestore, 'counter2')])
+    stream = new FirebaseEventStream(firestore, 'tenant1', 'main')
+    handlers = [new EventCounter(firestore, 'counter1'), new EventCounter(firestore, 'counter2')]
   })
 
   it('should accumulate numbers to 12 on calc123', async () => {
@@ -22,8 +23,7 @@ describe('Basic', () => {
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc123' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId })
-    await bus.poll('tenant1', 'main')
-    await bus.flush('tenant1')
+    await stream.poll(handlers)
     let counter = await firestore.doc('/counters/counter1').get()
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)
@@ -34,8 +34,7 @@ describe('Basic', () => {
     let calc 
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2 })
     calc = await bus.command(actor1, 'AddNumbers', { aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion, number1: 3, number2: 4 })
-    await bus.poll('tenant1', 'main')
-    await bus.flush('tenant1')
+    await stream.poll(handlers)
     calc.aggregateVersion.should.equal(1)
     calc.sum.should.equal(10)
   })
@@ -46,8 +45,7 @@ describe('Basic', () => {
       calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })
       calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
       calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: 0 })
-      await bus.poll('tenant1', 'main')
-      await bus.flush('tenant1')
+      await stream.poll(handlers)
     }
     catch(error) {
       error.message.should.be.equal('concurrency error')
@@ -60,8 +58,7 @@ describe('Basic', () => {
     for (let i = 0; i < iters; i++) {
       calc = await bus.command(actor1, 'AddNumbers', { number1: 0, number2: 1, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
     }
-    await bus.poll('tenant1', 'main')
-    await bus.flush('tenant1')
+    await stream.poll(handlers)
     calc.aggregateVersion.should.equal(iters)
     calc.sum.should.equal(iters + 1)
   })
@@ -84,7 +81,8 @@ describe('Basic without Snapshooter', () => {
   before (async () => {
     bus = setup([Calculator], false, null, 0)
     firestore = firebase.firestore()
-    await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 100)], [new EventCounter(firestore)])
+    stream = new FirebaseEventStream(firestore, 'tenant1', 'main')
+    handlers = [new EventCounter(firestore)]
   })
 
   it('should load aggregate from events', async () => {
@@ -92,8 +90,7 @@ describe('Basic without Snapshooter', () => {
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc100' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
-    await bus.poll('tenant1', 'main')
-    await bus.flush('tenant1')
+    await stream.poll(handlers)
     calc.aggregateVersion.should.equal(2)
     calc.sum.should.equal(12)
   })
@@ -102,8 +99,7 @@ describe('Basic without Snapshooter', () => {
     let calculator
     calculator = await bus.command(actor1, 'AddNumbers', { number1: 2, number2: 2 })
     calculator = await bus.command(actor1, 'SubtractNumbers', { aggregateId: calculator.aggregateId, number1: 1, number2: 0 })
-    await bus.poll('tenant1', 'main')
-    await bus.flush('tenant1')
+    await stream.poll(handlers)
     calculator.aggregateVersion.should.equal(1)
     calculator.aggregateId.length.should.be.at.least(10)
     calculator.sum.should.equal(3)

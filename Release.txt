@@ -45,3 +45,7 @@
 * Separated event streams from store (IEventStream, FirestoreEventStream)
 * Simplified stream subscription in bus. Commands wont push events anymore, so a polling mechanism or event listener must be
   implemented (Firestore onCreate trigger) to push new events to handlers
+
+3.0.1
+* Simplified stream with only one poll method.
+* Removed all stream reader related functionality from bus.

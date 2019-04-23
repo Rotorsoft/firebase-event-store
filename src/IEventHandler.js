@@ -9,7 +9,7 @@ module.exports = class IEventHandler {
   /**
    * Unique name in stream (used to store cursors)
    */
-  get name () { throw Err.notImplemented('name') }
+  get name () { return '' }
 
   /**
    * Stream name where events are published

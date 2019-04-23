@@ -120,16 +120,6 @@ describe('Not implemented', () => {
       FirestoreEventStore.prototype.commitEvents = m
     }
   })
-
-  it('should throw not implemented name', async () => {
-    try {
-      await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 100)], [new InvalidHandler()])
-      await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
-    }
-    catch(error) {
-      error.message.should.be.equal('not implemented: name')
-    }
-  })
 })
 
 describe('Err handling 2', () => {  

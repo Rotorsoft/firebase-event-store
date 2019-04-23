@@ -132,12 +132,12 @@ class EventCounter extends IEventHandler {
 
 const firebase = //TODO get firebase ref
 const bus = setup(firebase, [Calculator])
-await bus.subscribe([new FirebaseEventStream(firestore, 'tenant1', 'main', 100)], [new EventCounter(docStore)])
-
 let actor = { id: 'user1', name: 'actor 1', tenant: 'tenant1', roles: ['manager', 'user'] }
 let calc = await bus.command(actor, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })
 calc = await bus.command(actor, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
 calc = await bus.command(actor, 'SubtractNumbers', { aggregateId: 'calc1', number1: 1, number2: 1 })
+const stream = new FirebaseEventStream(firestore, 'tenant1', 'main')
+stream.poll([new EventCounter(docStore)])
 console.log('calculator', calc)
 ```
 
