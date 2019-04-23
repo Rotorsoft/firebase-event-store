@@ -49,3 +49,6 @@
 3.0.1
 * Simplified stream with only one poll method.
 * Removed all stream reader related functionality from bus.
+
+3.0.2
+* Moved ref in stream to local variable and passing tracer

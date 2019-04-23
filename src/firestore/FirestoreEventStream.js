@@ -3,20 +3,20 @@
 const IEventStream = require('../IEventStream')
 
 module.exports = class FirestoreEventStream extends IEventStream {
-  constructor (db, tenant, name) {
-    super(tenant, name)
+  constructor (db, tenant, name, tracer = null) {
+    super(tenant, name, tracer)
     this._db_ = db
-    this._ref_ = this._db_.doc(this.path)
   }
 
   get path () { return '/tenants/'.concat(this._tenant_, '/streams/', this._name_) }
 
   async poll (handlers, limit = 10) {
+    const ref = this._db_.doc(this.path)
     const validHandlers = handlers.filter(h => h.name && h.stream === this._name_)
     let cursors = {}, version = -1
     await this._db_.runTransaction(async transaction => {
       // get cursors
-      const doc = await transaction.get(this._ref_)
+      const doc = await transaction.get(ref)
       const data = doc.data() || {}
       cursors = data._cursors_ || {}
       version = data._version_ || -1
@@ -51,7 +51,7 @@ module.exports = class FirestoreEventStream extends IEventStream {
           }
         }
         // commit cursors
-        await transaction.set(this._ref_, { _cursors_: cursors }, { merge: true })
+        await transaction.set(ref, { _cursors_: cursors }, { merge: true })
       }
     })
     return validHandlers.filter(h => cursors[h.name] < version).length > 0
