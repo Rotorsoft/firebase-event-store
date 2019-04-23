@@ -19,11 +19,15 @@ module.exports = class FirestoreEventStream extends IEventStream {
       const doc = await transaction.get(ref)
       const data = doc.data() || {}
       cursors = data._cursors_ || {}
-      version = data._version_ || -1
+      if (typeof data._version_ !== 'undefined') version = data._version_
 
       // get min version to poll
       let v = validHandlers.reduce((p, c) => {
-        const cursor = cursors[c.name] || -1
+        const cursor = cursors[c.name]
+        if (typeof cursor === 'undefined') {
+          cursors[c.name] = -1
+          return -1
+        }
         return (p < 0 || cursor < p) ? cursor : p
       }, -1) + 1
 
@@ -38,7 +42,7 @@ module.exports = class FirestoreEventStream extends IEventStream {
         this._tracer_.trace(() => ({ method: 'poll', events }))
         for (let event of events) {
           for (let handler of validHandlers) {
-            if (event._version_ > (cursors[handler.name] || -1)) {
+            if (event._version_ > (cursors[handler.name])) {
               try {
                 this._tracer_.trace(() => ({ method: 'handle', handler: handler.name, stream: this._name_, event }))
                 await handler.handle(this._tenant_, event)
