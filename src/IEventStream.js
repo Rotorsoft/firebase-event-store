@@ -13,7 +13,8 @@ module.exports = class IEventStream {
    * Poll, handle events, and commits cursors
    * @param {Array} handlers Array of event handlers
    * @param {Integer} limit Max number of events to poll
+   * @param {Integer} timeout Timeout in milliseconds to expire lease
    * @returns True if any of the handlers is behind
    */
-  async poll (handlers, limit = 10) { throw Err.notImplemented('poll') }
+  async poll (handlers, { limit = 10, timeout = 10000 } = {}) { throw Err.notImplemented('poll') }
 }

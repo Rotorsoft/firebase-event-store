@@ -55,3 +55,6 @@
 
 3.0.3
 * Fixed cursors and version when undefined
+
+3.0.4
+* Fixed stream polling with lease strategy

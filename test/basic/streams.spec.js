@@ -76,9 +76,9 @@ describe('Streams', () => {
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId })
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 1, aggregateId: calc.aggregateId })
-    await stream.poll(handlers, 5)
-    await stream.poll(handlers, 5)
-    await stream.poll(handlers, 5)
+    await stream.poll(handlers, { limit: 5 })
+    await stream.poll(handlers, { limit: 5 })
+    await stream.poll(handlers, { limit: 5 })
     let counter1 = await firestore.doc('/counters/counter11').get()
     counter1.data().eventCount.should.equal(12)
     let counter2 = await firestore.doc('/counters/counter21').get()
@@ -92,9 +92,9 @@ describe('Streams', () => {
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     handlers = [new EventCounter(firestore, 'counter41')]
     calc = await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
-    await stream.poll(handlers, 5)
-    await stream.poll(handlers, 5)
-    await stream.poll(handlers, 5)
+    await stream.poll(handlers, { limit: 5 })
+    await stream.poll(handlers, { limit: 5 })
+    await stream.poll(handlers, { limit: 5 })
     let counter4 = await firestore.doc('/counters/counter41').get()
     counter4.data().eventCount.should.equal(14)
   })
@@ -106,15 +106,20 @@ describe('Streams', () => {
     let handlers2 = [new EventCounter(firestore, 'counter61')]
     await bus2.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
-    await stream.poll(handlers, 5)
-    await stream.poll(handlers, 5)
-    await stream.poll(handlers, 5)
-    await stream.poll(handlers, 5)
-    await stream.poll(handlers2, 8)
-    await stream.poll(handlers2, 8)
-    await stream.poll(handlers2, 8)
-
+    await stream.poll(handlers, { limit: 7 })
+    await stream.poll(handlers, { limit: 7 })
+    await stream.poll(handlers, { limit: 7 })
     let main = await firestore.doc('/tenants/tenant1/streams/main').get()
+    console.log(JSON.stringify(main.data()))
+    await stream.poll(handlers, { limit: 7 })
+    main = await firestore.doc('/tenants/tenant1/streams/main').get()
+    console.log(JSON.stringify(main.data()))
+
+    await stream.poll(handlers2, { limit: 8 })
+    await stream.poll(handlers2, { limit: 8 })
+    await stream.poll(handlers2, { limit: 8 })
+
+    main = await firestore.doc('/tenants/tenant1/streams/main').get()
     console.log(JSON.stringify(main.data()))
     let counter5 = await firestore.doc('/counters/counter51').get()
     counter5.data().eventCount.should.equal(17)
@@ -124,7 +129,7 @@ describe('Streams', () => {
 
   it('should poll until done', async () => {
     handlers = [new EventCounter(firestore, 'counter71')]
-    await stream.poll(handlers, 20)
+    await stream.poll(handlers, { limit: 20 })
     await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'cxz' })
     await stream.poll(handlers)
     let counter7 = await firestore.doc('/counters/counter71').get()

@@ -10,54 +10,77 @@ module.exports = class FirestoreEventStream extends IEventStream {
 
   get path () { return '/tenants/'.concat(this._tenant_, '/streams/', this._name_) }
 
-  async poll (handlers, limit = 10) {
-    const ref = this._db_.doc(this.path)
+  async poll (handlers, { limit = 10, timeout = 10000 } = {}) {
     const validHandlers = handlers.filter(h => h.name && h.stream === this._name_)
-    let cursors = {}, version = -1
-    await this._db_.runTransaction(async transaction => {
-      // get cursors
+    if (!validHandlers.length) return false
+
+    // create lease
+    const ref = this._db_.doc(this.path)
+    const lease = await this._db_.runTransaction(async transaction => {
+      const now = Date.now()
       const doc = await transaction.get(ref)
       const data = doc.data() || {}
-      cursors = data._cursors_ || {}
-      if (typeof data._version_ !== 'undefined') version = data._version_
 
-      // get min version to poll
+      // skip if stream is currently leased
+      if (data._lease_ && data._lease_.expiresAt > now) return null
+
+      const lease = {
+        token: now,
+        cursors: data._cursors_ || {},
+        version: typeof data._version_ !== 'undefined' ? data._version_ : -1,
+        events: []
+      }
+
+      // get min version to poll and init cursors
       let v = validHandlers.reduce((p, c) => {
-        const cursor = cursors[c.name]
+        const cursor = lease.cursors[c.name]
         if (typeof cursor === 'undefined') {
-          cursors[c.name] = -1
+          lease.cursors[c.name] = -1
           return -1
         }
         return (p < 0 || cursor < p) ? cursor : p
       }, -1) + 1
 
-      // poll events
+      // load events
       const eventsRef = this._db_.collection(this.path.concat('/events'))
       const query = await eventsRef.where('_version_', '>=', v).limit(limit).get()
-      const events = []
-      query.forEach(doc => { events.push(Object.freeze(doc.data())) })
+      query.forEach(doc => { lease.events.push(Object.freeze(doc.data())) })
+      lease.expiresAt = Date.now() + timeout
 
-      // handle events
-      if (events.length) {
-        this._tracer_.trace(() => ({ method: 'poll', events }))
-        for (let event of events) {
-          for (let handler of validHandlers) {
-            if (event._version_ > (cursors[handler.name])) {
-              try {
-                this._tracer_.trace(() => ({ method: 'handle', handler: handler.name, stream: this._name_, event }))
-                await handler.handle(this._tenant_, event)
-                cursors[handler.name] = event._version_
-              }
-              catch (e) {
-                this._tracer_.trace(() => ({ error: e }))
-              }
+      // save lease
+      if (lease.events.length) await transaction.set(ref, { _lease_: { token: lease.token, version: lease.version, expiresAt: lease.expiresAt } }, { merge: true })
+
+      return lease
+    })
+
+    // handle events
+    if (lease && lease.events.length) {
+      for (let event of lease.events) {
+        for (let handler of validHandlers) {
+          if (event._version_ > lease.cursors[handler.name]) {
+            try {
+              this._tracer_.trace(() => ({ method: 'handle', handler: handler.name, stream: this._name_, event }))
+              await handler.handle(this._tenant_, event)
+              lease.cursors[handler.name] = event._version_
+            }
+            catch (e) {
+              this._tracer_.trace(() => ({ error: e }))
             }
           }
         }
-        // commit cursors
-        await transaction.set(ref, { _cursors_: cursors }, { merge: true })
       }
-    })
-    return validHandlers.filter(h => cursors[h.name] < version).length > 0
+      // commit cursors
+      await this._db_.runTransaction(async transaction => {
+        const doc = await transaction.get(ref)
+        const data = doc.data() || {}
+
+        // commit when lease matches
+        if (data._lease_ && data._lease_.token === lease.token) {
+          await transaction.set(ref, { _cursors_: lease.cursors, _lease_: { token: 0, version: 0, expiresAt: 0 } }, { merge: true })
+        }
+      })
+      return validHandlers.filter(h => lease.cursors[h.name] < lease.version).length > 0
+    }
+    return false
   }
 }
