@@ -3,14 +3,16 @@
 const Aggregate = require('./Aggregate')
 const ITracer = require('./ITracer')
 const IEventStore = require('./IEventStore')
-const IEventHandler = require('./IEventHandler')
 const Err = require('./Err')
 
+/**
+ * Maps aggregate commands to their types
+ */
 class CommandMapper {
   constructor (aggregates) {
     this._map_ = {}
     aggregates.forEach(aggregateType => {
-      if (!(aggregateType.prototype instanceof Aggregate)) throw Err.preconditionError(`${aggregateType.name} is not a subclass of Aggregate`)
+      if (!(aggregateType.prototype instanceof Aggregate)) throw Err.invalidArgument('aggregateType')
       const aggregate = Aggregate.create(aggregateType)
       for(let command of Object.keys(aggregate.commands)) {
         this._map_[command] = aggregateType
@@ -20,11 +22,14 @@ class CommandMapper {
 
   map (command) {
     const aggregateType = this._map_[command]
-    if (!aggregateType) throw Err.invalidArguments(`command ${command} not found`)
+    if (!aggregateType) throw Err.invalidArgument('command')
     return aggregateType
   }
 }
 
+/**
+ * Simple in-memory object cache
+ */
 class Cache {
   constructor(size = 10) {
     this._size_ = size
@@ -68,13 +73,12 @@ module.exports = class Bus {
    * @param {Integer} CACHE_SIZE Size of aggregate cache
    */
   constructor (store, aggregates, tracer = null, CACHE_SIZE = 10) {
-    if (!(store instanceof IEventStore)) throw Err.invalidArguments('store')
-    if (tracer && !(tracer instanceof ITracer)) throw Err.invalidArguments('tracer')
+    if (!(store instanceof IEventStore)) throw Err.invalidArgument('store')
+    if (tracer && !(tracer instanceof ITracer)) throw Err.invalidArgument('tracer')
     this._store_ = store
     this._tracer_ = tracer || new ITracer()
     this._mapper_ = new CommandMapper(aggregates)
     this._cache_ = new Cache(CACHE_SIZE)
-    this._streams_ = {}
   }
 
   /**
@@ -87,15 +91,15 @@ module.exports = class Bus {
    */
   async command (actor, command, { aggregateId = '', expectedVersion = -1, ...payload } = {}) {
     // validate arguments
-    if (!actor) throw Err.missingArguments('actor')
-    if (!actor.id) throw Err.missingArguments('actor.id')
-    if (!actor.name) throw Err.missingArguments('actor.name')
-    if (!actor.tenant) throw Err.missingArguments('actor.tenant')
-    if (!actor.roles) throw Err.missingArguments('actor.roles')
-    if (!command) throw Err.missingArguments('command')
+    if (!actor) throw Err.missingArgument('actor')
+    if (!actor.id) throw Err.missingArgument('actor.id')
+    if (!actor.name) throw Err.missingArgument('actor.name')
+    if (!actor.tenant) throw Err.missingArgument('actor.tenant')
+    if (!actor.roles) throw Err.missingArgument('actor.roles')
+    if (!command) throw Err.missingArgument('command')
     
     // get aggregate type from commands map
-    if (expectedVersion >= 0 && !aggregateId) throw Err.missingArguments('aggregateId')
+    if (expectedVersion >= 0 && !aggregateId) throw Err.missingArgument('aggregateId')
 
     const aggregateType = this._mapper_.map(command)
     this._tracer_.trace(() => ({ method: 'command', actor, command, aggregateId, expectedVersion, payload }))

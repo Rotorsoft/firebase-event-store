@@ -58,3 +58,11 @@
 
 3.0.4
 * Fixed stream polling with lease strategy
+
+3.0.5
+* Clearer error handling in Err
+* Added Event class to translate internal coded fields to property getters
+* Removed maxEvents from Aggregate (not needed since streams)
+* Removed padding of aggregate versions inside events
+* Changed code for stream version from _version_ to _s in events
+

@@ -1,11 +1,14 @@
 'use strict'
 
 const IEventStream = require('../IEventStream')
+const ITracer = require('../ITracer')
+const Event = require('../Event')
 
 module.exports = class FirestoreEventStream extends IEventStream {
   constructor (db, tenant, name, tracer = null) {
-    super(tenant, name, tracer)
+    super(tenant, name)
     this._db_ = db
+    this._tracer_ = tracer || new ITracer()
   }
 
   get path () { return '/tenants/'.concat(this._tenant_, '/streams/', this._name_) }
@@ -43,8 +46,11 @@ module.exports = class FirestoreEventStream extends IEventStream {
 
       // load events
       const eventsRef = this._db_.collection(this.path.concat('/events'))
-      const query = await eventsRef.where('_version_', '>=', v).limit(limit).get()
-      query.forEach(doc => { lease.events.push(Object.freeze(doc.data())) })
+      const query = await eventsRef.where('_s', '>=', v).limit(limit).get()
+      query.forEach(doc => {
+        const event = Event.create(doc.data())
+        lease.events.push(event) 
+      })
       lease.expiresAt = Date.now() + timeout
 
       // save lease
@@ -57,11 +63,11 @@ module.exports = class FirestoreEventStream extends IEventStream {
     if (lease && lease.events.length) {
       for (let event of lease.events) {
         for (let handler of validHandlers) {
-          if (event._version_ > lease.cursors[handler.name]) {
+          if (event.streamVersion > lease.cursors[handler.name]) {
             try {
               this._tracer_.trace(() => ({ method: 'handle', handler: handler.name, stream: this._name_, event }))
               await handler.handle(this._tenant_, event)
-              lease.cursors[handler.name] = event._version_
+              lease.cursors[handler.name] = event.streamVersion
             }
             catch (e) {
               this._tracer_.trace(() => ({ error: e }))

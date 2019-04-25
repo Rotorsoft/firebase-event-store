@@ -2,7 +2,7 @@
 
 const { setup, firebase } = require('../setup')
 const { Calculator, EventCounter } = require('./model')
-const FirebaseEventStream = require('../../src/firestore/FirestoreEventStream')
+const FirestoreEventStream = require('../../src/firestore/FirestoreEventStream')
 
 let bus, firestore, stream, handlers
 
@@ -14,7 +14,7 @@ describe('Basic', () => {
   before (async () => {
     bus = setup([Calculator])
     firestore = firebase.firestore()
-    stream = new FirebaseEventStream(firestore, 'tenant1', 'main')
+    stream = new FirestoreEventStream(firestore, 'tenant1', 'main')
     handlers = [new EventCounter(firestore, 'counter1'), new EventCounter(firestore, 'counter2')]
   })
 
@@ -48,7 +48,7 @@ describe('Basic', () => {
       await stream.poll(handlers)
     }
     catch(error) {
-      error.message.should.be.equal('concurrency error')
+      error.name.should.be.equal('ConcurrencyError')
     }
   })
 
@@ -72,7 +72,7 @@ describe('Basic', () => {
       }
     }
     catch(error) {
-      error.message.should.be.equal('precondition error: max events reached')
+      error.message.should.be.equal('max events reached')
     }
   })
 })
@@ -81,7 +81,7 @@ describe('Basic without Snapshooter', () => {
   before (async () => {
     bus = setup([Calculator], false, null, 0)
     firestore = firebase.firestore()
-    stream = new FirebaseEventStream(firestore, 'tenant1', 'main')
+    stream = new FirestoreEventStream(firestore, 'tenant1', 'main')
     handlers = [new EventCounter(firestore)]
   })
 

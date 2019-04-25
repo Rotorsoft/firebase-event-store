@@ -24,19 +24,18 @@ module.exports = class Calculator extends Aggregate {
   }
 
   static get path () { return '/calculators' }
-  static get maxEvents () { return 100 }
 
   get commands () { 
     return { 
       PressDigit: async (actor, _) => {
-        if (_.digit < '0' || _.digit > '9') throw Err.invalidArguments('digit')
+        if (_.digit < '0' || _.digit > '9') throw Err.invalidArgument('digit')
         this.addEvent(EVENTS.DigitPressed, _)
       },
       PressDot: async (actor, _) => {
         this.addEvent(EVENTS.DotPressed, _)
       },
       PressOperator: async (actor, _) => {
-        if (!Object.keys(OPERATORS).includes(_.operator)) throw Err.invalidArguments('operator')
+        if (!Object.keys(OPERATORS).includes(_.operator)) throw Err.invalidArgument('operator')
         this.addEvent(EVENTS.OperatorPressed, _)
       },
       PressEquals: async (actor, _) => {
@@ -71,9 +70,9 @@ module.exports = class Calculator extends Aggregate {
   }
 
   compute () {
-    if (!this.left) throw Err.preconditionError('missing left side')
-    if (!this.right) throw Err.preconditionError('missing right side')
-    if (!this.operator) throw Err.preconditionError('missing operator')
+    if (!this.left) throw Err.precondition('missing left side')
+    if (!this.right) throw Err.precondition('missing right side')
+    if (!this.operator) throw Err.precondition('missing operator')
     const l = Number.parseFloat(this.left)
     const r = Number.parseFloat(this.right)
     this.result = OPERATORS[this.operator](l, r)

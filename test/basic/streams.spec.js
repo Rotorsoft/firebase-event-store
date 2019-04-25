@@ -2,7 +2,7 @@
 
 const { setup, firebase, ITracer } = require('../setup')
 const { Calculator, EventCounter } = require('./model')
-const FirebaseEventStream = require('../../src/firestore/FirestoreEventStream')
+const FirestoreEventStream = require('../../src/firestore/FirestoreEventStream')
 
 let bus, firestore, stream, handlers
 
@@ -41,7 +41,7 @@ describe('Streams', () => {
     bus = setup([Calculator], true, new ConsoleTracer())
     firestore = firebase.firestore()
     firestore.children = []
-    stream = new FirebaseEventStream(firestore, 'tenant1', 'main')
+    stream = new FirestoreEventStream(firestore, 'tenant1', 'main')
     handlers = [new EventCounter(firestore, 'counter11')]
   })
 

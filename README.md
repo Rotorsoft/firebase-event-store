@@ -62,7 +62,7 @@ service cloud.firestore {
 A trivial aggregate and event handler:
 
 ```javascript
-const { setup, Aggregate, IEventHandler, Err, FirebaseEventStream } = require('@rotorsoft/firebase-event-store')
+const { setup, Aggregate, IEventHandler, Err, FirestoreEventStream } = require('@rotorsoft/firebase-event-store')
 
 const EVENTS = {
   NumbersAdded: 'NumbersAdded',
@@ -80,13 +80,13 @@ class Calculator extends Aggregate {
   get commands () { 
     return { 
       AddNumbers: async (actor, _) => {
-        if (!Number.isInteger(_.number1)) throw Err.invalidArguments('number1')
-        if (!Number.isInteger(_.number2)) throw Err.invalidArguments('number2')
+        if (!Number.isInteger(_.number1)) throw Err.invalidArgument('number1')
+        if (!Number.isInteger(_.number2)) throw Err.invalidArgument('number2')
         this.addEvent(EVENTS.NumbersAdded, _)
       },
       SubtractNumbers: async (actor, _) => {
-        if (!Number.isInteger(_.number1)) throw Err.invalidArguments('number1')
-        if (!Number.isInteger(_.number2)) throw Err.invalidArguments('number2')
+        if (!Number.isInteger(_.number1)) throw Err.invalidArgument('number1')
+        if (!Number.isInteger(_.number2)) throw Err.invalidArgument('number2')
         this.addEvent(EVENTS.NumbersSubtracted, _)
       }
     }
@@ -136,7 +136,7 @@ let actor = { id: 'user1', name: 'actor 1', tenant: 'tenant1', roles: ['manager'
 let calc = await bus.command(actor, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })
 calc = await bus.command(actor, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
 calc = await bus.command(actor, 'SubtractNumbers', { aggregateId: 'calc1', number1: 1, number2: 1 })
-const stream = new FirebaseEventStream(firestore, 'tenant1', 'main')
+const stream = new FirestoreEventStream(firestore, 'tenant1', 'main')
 stream.poll([new EventCounter(docStore)])
 console.log('calculator', calc)
 ```
@@ -170,19 +170,18 @@ module.exports = class Calculator extends Aggregate {
   }
 
   static get path () { return '/calculators' }
-  static get maxEvents () { return 100 }
 
   get commands () { 
     return { 
       PressDigit: async (actor, _) => {
-        if (_.digit < '0' || _.digit > '9') throw Err.invalidArguments('digit')
+        if (_.digit < '0' || _.digit > '9') throw Err.invalidArgument('digit')
         this.addEvent(EVENTS.DigitPressed, _)
       },
       PressDot: async (actor, _) => {
         this.addEvent(EVENTS.DotPressed, _)
       },
       PressOperator: async (actor, _) => {
-        if (!Object.keys(OPERATORS).includes(_.operator)) throw Err.invalidArguments('operator')
+        if (!Object.keys(OPERATORS).includes(_.operator)) throw Err.invalidArgument('operator')
         this.addEvent(EVENTS.OperatorPressed, _)
       },
       PressEquals: async (actor, _) => {
@@ -217,9 +216,9 @@ module.exports = class Calculator extends Aggregate {
   }
 
   compute () {
-    if (!this.left) throw Err.preconditionError('missing left side')
-    if (!this.right) throw Err.preconditionError('missing right side')
-    if (!this.operator) throw Err.preconditionError('missing operator')
+    if (!this.left) throw Err.precondition('missing left side')
+    if (!this.right) throw Err.precondition('missing right side')
+    if (!this.operator) throw Err.precondition('missing operator')
     const l = Number.parseFloat(this.left)
     const r = Number.parseFloat(this.right)
     this.result = OPERATORS[this.operator](l, r)

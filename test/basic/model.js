@@ -14,18 +14,17 @@ class Calculator extends Aggregate {
   }
 
   static get path () { return '/calculators' }
-  static get maxEvents () { return 15 }
 
   get commands () { 
     return { 
       AddNumbers: async (actor, _) => {
-        if (!Number.isInteger(_.number1)) throw Err.invalidArguments('number1')
-        if (!Number.isInteger(_.number2)) throw Err.invalidArguments('number2')
+        if (!Number.isInteger(_.number1)) throw Err.invalidArgument('number1')
+        if (!Number.isInteger(_.number2)) throw Err.invalidArgument('number2')
         this.addEvent(EVENTS.NumbersAdded, _)
       },
       SubtractNumbers: async (actor, _) => {
-        if (!Number.isInteger(_.number1)) throw Err.invalidArguments('number1')
-        if (!Number.isInteger(_.number2)) throw Err.invalidArguments('number2')
+        if (!Number.isInteger(_.number1)) throw Err.invalidArgument('number1')
+        if (!Number.isInteger(_.number2)) throw Err.invalidArgument('number2')
         this.addEvent(EVENTS.NumbersSubtracted, _)
       }
     }
@@ -58,7 +57,7 @@ class EventCounter extends IEventHandler {
     let doc = snap.data() || {}
     doc.eventCount = (doc.eventCount || 0) + 1
     await this.db.doc(path).set(doc)
-    if (this.name) console.log(`${this.name} handled event ${tenant}-${event._version_} and count is ${doc.eventCount}`)
+    if (this.name) console.log(`${this.name} handled event ${tenant}-${event.streamVersion} and count is ${doc.eventCount}`)
   }
 
   get events () {

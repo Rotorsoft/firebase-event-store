@@ -3,7 +3,7 @@
 const IEventStore = require('../IEventStore')
 const ITracer = require('../ITracer')
 const Aggregate = require('../Aggregate')
-const PromiseQueue = require('../PromiseQueue')
+const Event = require('../Event')
 const Err = require('../Err')
 
 function aggregatesPath (tenant, aggregateType) {
@@ -17,7 +17,7 @@ function streamPath (tenant, stream) {
 class Padder {
   constructor (max = 1e6) {
     this.padLen = (max - 1).toString().length
-    if (this.padLen > 6) throw Err.preconditionError('max events is higher than 1000000')
+    if (this.padLen > 6) throw Err.precondition('max events is higher than 1000000')
     this.padStr = '000000'.substr(0, this.padLen)
   }
 
@@ -33,7 +33,6 @@ module.exports = class FirestoreEventStore extends IEventStore {
     this._db_ = db
     this._snapshots_ = snapshots || false
     this._tracer_ = tracer || new ITracer()
-    this._commitQueue_ = new PromiseQueue()
   }
 
   async loadAggregate (tenant, aggregateType, aggregateId) {
@@ -42,17 +41,12 @@ module.exports = class FirestoreEventStore extends IEventStore {
       const aggregate = Aggregate.create(aggregateType, doc && doc.exists ? doc.data() : { _aggregate_id_: aggregateId })
       
       // load events that ocurred after snapshot was taken
-      const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
-      const versionPadded = aggregateVersionPadder.pad(aggregate.aggregateVersion + 1)
       const eventsRef = this._db_.collection(streamPath(tenant, aggregateType.stream).concat('/events'))
-      const events = await eventsRef
-        .where('_t', '==', aggregateType.name)
-        .where('_a', '==', aggregate.aggregateId)
-        .where('_v', '>=', versionPadded).get()
+      const events = await eventsRef.where('_t', '==', aggregateType.name).where('_a', '==', aggregate.aggregateId).where('_v', '>=', aggregate.aggregateVersion + 1).get()
       events.forEach(doc => {
-        const event = Object.freeze(doc.data())
+        const event = Event.create(doc.data())
         aggregate._loadEvent(event)
-        this._tracer_.trace(() => ({ stat: 'loadEvent', aggregateType, event }))
+        this._tracer_.trace(() => ({ method: 'loadEvent', aggregateType, event }))
       })
       return aggregate
     }
@@ -62,51 +56,35 @@ module.exports = class FirestoreEventStore extends IEventStore {
   }
 
   async commitEvents (actor, command, aggregate, expectedVersion) {
-    if (aggregate.aggregateVersion !== expectedVersion) throw Err.concurrencyError()
-    const commit = async ({ actor, command, aggregate, expectedVersion }) => {
-      const aggregateType = Object.getPrototypeOf(aggregate).constructor
-      if (expectedVersion + 1 >= aggregateType.maxEvents - 1) throw Err.preconditionError('max events reached')
+    if (aggregate.aggregateVersion !== expectedVersion) throw Err.concurrency()
+    const aggregateType = Object.getPrototypeOf(aggregate).constructor
+    const eventsVersionPadder = new Padder()
+    const aggregateRef = this._db_.collection(aggregatesPath(actor.tenant, aggregateType)).doc(aggregate.aggregateId)
+    const streamRef = this._db_.doc(streamPath(actor.tenant, aggregateType.stream))
+    const eventsRef = streamRef.collection('events')
+    
+    return await this._db_.runTransaction(async transaction => {
+      const events = []
+
+      // get stream version
+      const streamDoc = await transaction.get(streamRef)
+      const streamData = streamDoc.data()
+      let version = (streamData && typeof streamData._version_ !== 'undefined') ? streamData._version_ : -1
       
-      const eventsVersionPadder = new Padder()
-      const aggregateVersionPadder = new Padder(aggregateType.maxEvents)
-      const aggregateRef = this._db_.collection(aggregatesPath(actor.tenant, aggregateType)).doc(aggregate.aggregateId)
-      const streamRef = this._db_.doc(streamPath(actor.tenant, aggregateType.stream))
-      const eventsRef = streamRef.collection('events')
-      return await this._db_.runTransaction(async transaction => {
-        const events = []
+      // check aggregate version
+      const check = await eventsRef.where('_t', '==', aggregateType.name).where('_a', '==', aggregate.aggregateId).where('_v', '>', expectedVersion).limit(1).get()
+      if (!check.empty) throw Err.concurrency()
 
-        // get stream version
-        const streamDoc = await transaction.get(streamRef)
-        const streamData = streamDoc.data()
-        let version = (streamData && typeof streamData._version_ !== 'undefined') ? streamData._version_ : -1
-        
-        // check aggregate version
-        const paddedExpectedVersion = aggregateVersionPadder.pad(expectedVersion)
-        const check = await eventsRef
-          .where('_t', '==', aggregateType.name)
-          .where('_a', '==', aggregate.aggregateId)
-          .where('_v', '>', paddedExpectedVersion).limit(1).get()
-        if (!check.empty) throw Err.concurrencyError()
-
-        for(let event of aggregate._uncommitted_events_) {
-          const eventId = eventsVersionPadder.pad(++version)
-          const eventObject = Object.assign({
-            _u: actor.id,
-            _c: command,
-            _t: aggregateType.name,
-            _a: aggregate._aggregate_id_,
-            _v: aggregateVersionPadder.pad(++expectedVersion),
-            _version_: version
-          }, event)
-          await transaction.set(eventsRef.doc(eventId), eventObject)
-          events.push(eventObject)
-        }
-        await transaction.set(streamRef, { _version_: version }, { merge: true })
-        aggregate._aggregate_version_ = expectedVersion
-        if (this._snapshots_) await transaction.set(aggregateRef, aggregate.clone())
-        return events
-      })
-    }
-    return await this._commitQueue_.push(commit, { actor, command, aggregate, expectedVersion })
+      for(let event of aggregate._uncommitted_events_) {
+        const eventId = eventsVersionPadder.pad(++version)
+        const stampedEvent = event._stamp(actor.id, command, aggregateType.name, aggregate._aggregate_id_, ++expectedVersion, version)
+        await transaction.set(eventsRef.doc(eventId), Object.assign({}, stampedEvent))
+        events.push(stampedEvent)
+      }
+      await transaction.set(streamRef, { _version_: version }, { merge: true })
+      aggregate._aggregate_version_ = expectedVersion
+      if (this._snapshots_) await transaction.set(aggregateRef, aggregate.clone())
+      return events
+    })
   }
 }

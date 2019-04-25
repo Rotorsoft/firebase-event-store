@@ -11,7 +11,7 @@ class InvalidAggregate extends Aggregate {
     return { 
       InvalidCommand: async () => {},
       InvalidCommand3: async (actor, _) => {
-        if (_.a <= _.b) throw Err.preconditionError('a must be greater than b')
+        if (_.a <= _.b) throw Err.precondition('a must be greater than b')
       }
     } 
   }

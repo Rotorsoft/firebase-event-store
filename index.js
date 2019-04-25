@@ -6,6 +6,7 @@ const IEventStream = require('./src/IEventStream')
 const ITracer = require('./src/ITracer')
 const Bus = require('./src/Bus')
 const Aggregate = require('./src/Aggregate')
+const Event = require('./src/Event')
 const FirestoreEventStore = require('./src/firestore/FirestoreEventStore')
 const FirestoreEventStream = require('./src/firestore/FirestoreEventStream')
 const Err = require('./src/Err')
@@ -14,6 +15,7 @@ let _bus_
 
 module.exports = {
   Aggregate,
+  Event,
   Bus,
   IEventHandler,
   IEventStore,
@@ -25,11 +27,11 @@ module.exports = {
    * Initializes firebase store and creates the bus
    */
   setup: (firebase, aggregates, { snapshots = true, tracer = null, CACHE_SIZE = 10 } = {}) => {
-    if (!firebase) throw Err.missingArguments('firebase')
-    if (!firebase.apps) throw Err.invalidArguments('firebase.apps')
-    if (!aggregates) throw Err.missingArguments('aggregates')
-    if (!(aggregates instanceof Array)) throw Err.invalidArguments('aggregates')
-    if (tracer && !(tracer instanceof ITracer)) throw Err.invalidArguments('tracer')
+    if (!firebase) throw Err.missingArgument('firebase')
+    if (!firebase.apps) throw Err.invalidArgument('firebase.apps')
+    if (!aggregates) throw Err.missingArgument('aggregates')
+    if (!(aggregates instanceof Array)) throw Err.invalidArgument('aggregates')
+    if (tracer && !(tracer instanceof ITracer)) throw Err.invalidArgument('tracer')
 
     if (!firebase.apps.length) {
       firebase.initializeApp()

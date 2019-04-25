@@ -1,9 +1,7 @@
 'use strict'
 
-const Err = require('./Err')
-
 /**
- * EventHandler interface to be implemented by manager processes subscribed to event bus
+ * EventHandler interface to be implemented by manager processes polling from event streams
  */
 module.exports = class IEventHandler {
   /**
@@ -36,11 +34,11 @@ module.exports = class IEventHandler {
   /**
    * Handles event
    * 
-   * @param {String} tenant Tenant Id
-   * @param {Object} event Event Object
+   * @param {String} tenant Tenant id
+   * @param {Event} event Event
    */
   async handle (tenant, event) {
-    const eh = this.events[event._e]
+    const eh = this.events[event.eventName]
     if (eh) await eh(tenant, event)
   }
 }

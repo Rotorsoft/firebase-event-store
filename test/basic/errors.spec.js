@@ -2,7 +2,7 @@
 
 const Aggregate = require('../../src/Aggregate')
 const FirestoreEventStore = require('../../src/firestore/FirestoreEventStore')
-const FirebaseEventStream = require('../../src/firestore/FirestoreEventStream')
+const FirestoreEventStream = require('../../src/firestore/FirestoreEventStream')
 const Bus = require('../../src/Bus')
 const { Calculator } = require('./model')
 const { InvalidAggregate, InvalidAggregate2, InvalidHandler } = require('./invalid')
@@ -19,7 +19,8 @@ describe('Err handling', () => {
       await bus.command(null, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('missing arguments: actor')
+      error.name.should.be.equal('MissingArgumentError')
+      error.argument.should.be.equal('actor')
     }
   })
 
@@ -28,7 +29,8 @@ describe('Err handling', () => {
       await bus.command({ name: 'user1', tenant: 'tenant1', roles: [] }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('missing arguments: actor.id')
+      error.name.should.be.equal('MissingArgumentError')
+      error.argument.should.be.equal('actor.id')
     }
   })
 
@@ -37,7 +39,8 @@ describe('Err handling', () => {
       await bus.command({ id: 'user1', tenant: 'tenant1', roles: [] }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('missing arguments: actor.name')
+      error.name.should.be.equal('MissingArgumentError')
+      error.argument.should.be.equal('actor.name')
     }
   })
 
@@ -46,7 +49,8 @@ describe('Err handling', () => {
       await bus.command({ id: 'user1', name: 'user1', roles: [] }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('missing arguments: actor.tenant')
+      error.name.should.be.equal('MissingArgumentError')
+      error.argument.should.be.equal('actor.tenant')
     }
   })
 
@@ -55,7 +59,8 @@ describe('Err handling', () => {
       await bus.command({ id: 'user1', name: 'user1', tenant: 'tenant1' }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('missing arguments: actor.roles')
+      error.name.should.be.equal('MissingArgumentError')
+      error.argument.should.be.equal('actor.roles')
     }
   })
 
@@ -64,7 +69,8 @@ describe('Err handling', () => {
       await bus.command(actor1, '', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('missing arguments: command')
+      error.name.should.be.equal('MissingArgumentError')
+      error.argument.should.be.equal('command')
     }
   })
 
@@ -73,7 +79,8 @@ describe('Err handling', () => {
       await bus.command(actor1, 'abc', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('invalid arguments: command abc not found')
+      error.name.should.be.equal('InvalidArgumentError')
+      error.argument.should.be.equal('command')
     }
   })
 
@@ -82,7 +89,8 @@ describe('Err handling', () => {
       await bus.command(actor1, 'abc', { number1: 1, number2: 2, expectedVersion: 1 })
     }
     catch(error) {
-      error.message.should.be.equal('missing arguments: aggregateId')
+      error.name.should.be.equal('MissingArgumentError')
+      error.argument.should.be.equal('aggregateId')
     }
   })
 
@@ -91,7 +99,8 @@ describe('Err handling', () => {
       await bus.command(actor1, 'AddNumbers')
     }
     catch(error) {
-      error.message.should.be.equal('invalid arguments: number1')
+      error.name.should.be.equal('InvalidArgumentError')
+      error.argument.should.be.equal('number1')
     }
   })
 })
@@ -104,7 +113,8 @@ describe('Not implemented', () => {
       await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('not implemented: loadAggregate')
+      error.name.should.be.equal('NotImplementedError')
+      error.method.should.be.equal('loadAggregate')
       FirestoreEventStore.prototype.loadAggregate = m
     }
   })
@@ -116,7 +126,8 @@ describe('Not implemented', () => {
       await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
-      error.message.should.be.equal('not implemented: commitEvents')
+      error.name.should.be.equal('NotImplementedError')
+      error.method.should.be.equal('commitEvents')
       FirestoreEventStore.prototype.commitEvents = m
     }
   })
@@ -128,7 +139,8 @@ describe('Err handling 2', () => {
       let bus2 = new Bus(new Object(), [])
     }
     catch(error) {
-      error.message.should.equal('invalid arguments: store')
+      error.name.should.equal('InvalidArgumentError')
+      error.argument.should.equal('store')
     }
   })
 
@@ -138,7 +150,8 @@ describe('Err handling 2', () => {
       await bus.command(actor1, 'InvalidCommand', { number1: 1, number2: 2 })
     }
     catch(error) { 
-      error.message.should.be.equal('not implemented: commands')
+      error.name.should.be.equal('NotImplementedError')
+      error.method.should.be.equal('commands')
     }
   })
 
@@ -149,7 +162,8 @@ describe('Err handling 2', () => {
       await bus.command(actor1, 'InvalidCommand', { number1: 1, number2: 2 })
     }
     catch(error) { 
-      error.message.should.be.equal('not implemented: events')
+      error.name.should.be.equal('NotImplementedError')
+      error.method.should.be.equal('events')
     }
   })
 
@@ -168,7 +182,8 @@ describe('Err handling 2', () => {
       await bus.command(actor1, 'InvalidCommand3', { a: 1, b: 3 })
     }
     catch(error) {
-      error.message.should.equal('precondition error: a must be greater than b')
+      error.name.should.equal('PreconditionError')
+      error.message.should.equal('a must be greater than b')
     }
   })
 
@@ -183,7 +198,8 @@ describe('Err handling 2', () => {
       await bus.command(actor1, 'C')
     }
     catch(error) {
-      error.message.should.be.equal('not implemented: events')
+      error.name.should.be.equal('NotImplementedError')
+      error.method.should.be.equal('events')
     }
   })
 
@@ -198,7 +214,8 @@ describe('Err handling 2', () => {
       await bus.command(actor1, 'C')
     }
     catch(error) {
-      error.message.should.be.equal('not implemented: commands')
+      error.name.should.be.equal('NotImplementedError')
+      error.method.should.be.equal('commands')
     }
   })
 
@@ -208,7 +225,8 @@ describe('Err handling 2', () => {
       await bus.command(actor1, 'InvalidCommand', {})
     }
     catch(error) {
-      error.message.should.be.equal('not implemented: path')
+      error.name.should.be.equal('NotImplementedError')
+      error.method.should.be.equal('path')
     }
   })
 })
