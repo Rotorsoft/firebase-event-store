@@ -2,7 +2,6 @@
 
 const Aggregate = require('../../src/Aggregate')
 const FirestoreEventStore = require('../../src/firestore/FirestoreEventStore')
-const FirestoreEventStream = require('../../src/firestore/FirestoreEventStream')
 const Bus = require('../../src/Bus')
 const { Calculator } = require('./model')
 const { InvalidAggregate, InvalidAggregate2, InvalidHandler } = require('./invalid')

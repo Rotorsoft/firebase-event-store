@@ -2,13 +2,11 @@
 
 const IEventHandler = require('./src/IEventHandler')
 const IEventStore = require('./src/IEventStore')
-const IEventStream = require('./src/IEventStream')
 const ITracer = require('./src/ITracer')
 const Bus = require('./src/Bus')
 const Aggregate = require('./src/Aggregate')
 const Event = require('./src/Event')
 const FirestoreEventStore = require('./src/firestore/FirestoreEventStore')
-const FirestoreEventStream = require('./src/firestore/FirestoreEventStream')
 const Err = require('./src/Err')
 
 let _bus_
@@ -19,10 +17,8 @@ module.exports = {
   Bus,
   IEventHandler,
   IEventStore,
-  IEventStream,
   ITracer,
   Err,
-  FirestoreEventStream,
   /**
    * Initializes firebase store and creates the bus
    */

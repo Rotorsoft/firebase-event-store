@@ -85,9 +85,9 @@ module.exports = class Bus {
    * Command Handler
    * 
    * @param {Object} actor User/Process sending command - must contain { id, name, tenant, and roles }
-   * @param {String} command name
-   * @param {Object} payload including aggregateId and expectedVersion
-   * @returns {Aggregate} aggregate
+   * @param {String} command Command name
+   * @param {Object} payload Command payload including aggregateId and expectedVersion
+   * @returns {Object} command context with call arguments, stats, and updated aggregate
    */
   async command (actor, command, { aggregateId = '', expectedVersion = -1, ...payload } = {}) {
     // validate arguments
@@ -100,41 +100,83 @@ module.exports = class Bus {
     
     // get aggregate type from commands map
     if (expectedVersion >= 0 && !aggregateId) throw Err.missingArgument('aggregateId')
-
     const aggregateType = this._mapper_.map(command)
-    this._tracer_.trace(() => ({ method: 'command', actor, command, aggregateId, expectedVersion, payload }))
 
-    // load aggregate
-    let aggregate
+    // create command context
+    const context = { actor, command, aggregateType, aggregateId, expectedVersion, payload }
+    this._tracer_.trace(() => ({ method: 'command', context }))
 
-    // try cache first
-    const key = aggregateType.name.concat('.', aggregateId)
+    // try loading aggregate from cache first
     if (aggregateId && expectedVersion >= 0) {
-      const copy = this._cache_.get(key)
-      if (copy) aggregate = Aggregate.create(aggregateType, copy)
+      context.cacheKey = aggregateType.name.concat('.', aggregateId)
+      const copy = this._cache_.get(context.cacheKey)
+      if (copy) {
+        context.aggregate = Aggregate.create(aggregateType, copy)
+        context.cached = true
+      }
     }
 
     // load from store if not found in cache or incorrect version
-    if (!(aggregate && aggregate._aggregate_version_ === expectedVersion)) {
-      aggregate = await this._store_.loadAggregate(actor.tenant, aggregateType, aggregateId)
-      this._tracer_.trace(() => ({ method: 'loadAggregate', aggregate, aggregateType }))
+    if (!(context.aggregate && context.aggregate._aggregate_version_ === expectedVersion)) {
+      context.aggregate = await this._store_.loadAggregate(context)
+      context.cached = false
+      this._tracer_.trace(() => ({ method: 'loadAggregate', context }))
     }
   
     // handle command
-    await aggregate.commands[command](actor, payload, this)
+    await context.aggregate.commands[command](actor, payload, this)
 
-    if (aggregate._uncommitted_events_.length) {
+    if (context.aggregate._uncommitted_events_.length) {
       // assume user wants to act on latest version when not provided
-      if (expectedVersion === -1) expectedVersion = aggregate._aggregate_version_
+      if (expectedVersion === -1) context.expectedVersion = context.aggregate._aggregate_version_
 
       // commit events
-      const events = await this._store_.commitEvents(actor, command, aggregate, expectedVersion)
-      this._tracer_.trace(() => ({ method: 'commitEvents', events, actor, command, aggregate, aggregateType }))
+      const events = await this._store_.commitEvents(context)
+      this._tracer_.trace(() => ({ method: 'commitEvents', events, context }))
 
       // cache aggregate
-      this._cache_.set(key, aggregate.clone())
+      this._cache_.set(context.cacheKey, context.aggregate.clone())
     }
 
-    return aggregate
+    return context
+  }
+
+  /**
+   * Poll stream, handle new events, and commits cursors
+   * 
+   * @param {String} tenant tenant id
+   * @param {String} stream stream name
+   * @param {Array} handlers Array of event handlers
+   * @param {Integer} limit Max number of events to poll
+   * @param {Integer} timeout Timeout in milliseconds to expire lease
+   * @returns True if any of the handlers is still behind
+   */
+  async poll (tenant, stream, handlers, { limit = 10, timeout = 10000 } = {}) {
+    // validate handlers
+    const validHandlers = handlers.filter(h => h.name && h.stream === stream)
+    if (!validHandlers.length) return false
+
+    const lease = await this._store_.pollStream(tenant, stream, validHandlers, limit, timeout)
+
+    // handle events
+    if (lease && lease.events.length) {
+      for (let event of lease.events) {
+        for (let handler of lease.handlers) {
+          if (event.streamVersion > lease.cursors[handler.name]) {
+            try {
+              this._tracer_.trace(() => ({ method: 'handle', handler: handler.name, tenant, stream, event }))
+              await handler.handle(tenant, event)
+              lease.cursors[handler.name] = event.streamVersion
+            }
+            catch (e) {
+              this._tracer_.trace(() => ({ error: e }))
+            }
+          }
+        }
+      }
+      return await this._store_.commitCursors(lease)
+    }
+
+    return false
   }
 }

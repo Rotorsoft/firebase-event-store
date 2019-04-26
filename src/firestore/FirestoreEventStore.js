@@ -35,29 +35,34 @@ module.exports = class FirestoreEventStore extends IEventStore {
     this._tracer_ = tracer || new ITracer()
   }
 
-  async loadAggregate (tenant, aggregateType, aggregateId) {
+  async loadAggregate (context) {
+    const { actor, aggregateType, aggregateId, expectedVersion } = context
+    const collRef = this._db_.collection(aggregatesPath(actor.tenant, aggregateType))
     if (aggregateId) {
-      const doc = this._snapshots_ ? await this._db_.collection(aggregatesPath(tenant, aggregateType)).doc(aggregateId).get() : null
-      const aggregate = Aggregate.create(aggregateType, doc && doc.exists ? doc.data() : { _aggregate_id_: aggregateId })
+      const doc = this._snapshots_ ? await collRef.doc(aggregateId).get() : null
+      const aggregate = Aggregate.create(aggregateType, doc && doc.exists ? doc.data() : { _aggregate_id_: aggregateId, _aggregate_version_: -1 })
       
       // load events that ocurred after snapshot was taken
-      const eventsRef = this._db_.collection(streamPath(tenant, aggregateType.stream).concat('/events'))
-      const events = await eventsRef.where('_t', '==', aggregateType.name).where('_a', '==', aggregate.aggregateId).where('_v', '>=', aggregate.aggregateVersion + 1).get()
-      events.forEach(doc => {
-        const event = Event.create(doc.data())
-        aggregate._loadEvent(event)
-        this._tracer_.trace(() => ({ method: 'loadEvent', aggregateType, event }))
-      })
+      if (expectedVersion == -1 || aggregate.aggregateVersion < expectedVersion) {
+        const eventsRef = this._db_.collection(streamPath(actor.tenant, aggregateType.stream).concat('/events'))
+        const events = await eventsRef.where('_t', '==', aggregateType.name).where('_a', '==', aggregate.aggregateId).where('_v', '>=', aggregate.aggregateVersion + 1).get()
+        events.forEach(doc => {
+          const event = Event.create(doc.data())
+          aggregate._loadEvent(event)
+        })
+      }
       return aggregate
     }
-    // return new aggregate with generated id
-    const newAggRef = this._db_.collection(aggregatesPath(tenant, aggregateType)).doc()
-    return Aggregate.create(aggregateType, { _aggregate_id_: newAggRef.id })
+    // return new aggregate with auto generated id
+    context.aggregateId = collRef.doc().id
+    return Aggregate.create(aggregateType, { _aggregate_id_: context.aggregateId })
   }
 
-  async commitEvents (actor, command, aggregate, expectedVersion) {
+  async commitEvents (context) {
+    const { actor, command, aggregateType, aggregate } = context
+    let { expectedVersion } = context
     if (aggregate.aggregateVersion !== expectedVersion) throw Err.concurrency()
-    const aggregateType = Object.getPrototypeOf(aggregate).constructor
+
     const eventsVersionPadder = new Padder()
     const aggregateRef = this._db_.collection(aggregatesPath(actor.tenant, aggregateType)).doc(aggregate.aggregateId)
     const streamRef = this._db_.doc(streamPath(actor.tenant, aggregateType.stream))
@@ -85,6 +90,66 @@ module.exports = class FirestoreEventStore extends IEventStore {
       aggregate._aggregate_version_ = expectedVersion
       if (this._snapshots_) await transaction.set(aggregateRef, aggregate.clone())
       return events
+    })
+  }
+
+  async pollStream (tenant, stream, handlers, limit = 10, timeout = 10000) {
+    return await this._db_.runTransaction(async transaction => {
+      const path = streamPath(tenant, stream)
+      const ref = this._db_.doc(path)
+      const now = Date.now()
+      const doc = await transaction.get(ref)
+      const data = doc.data() || {}
+
+      // skip if stream is currently leased
+      if (data._lease_ && data._lease_.expiresAt > now) return null
+
+      const lease = {
+        path,
+        token: now,
+        cursors: data._cursors_ || {},
+        version: typeof data._version_ !== 'undefined' ? data._version_ : -1,
+        handlers,
+        events: []
+      }
+
+      // get min version to poll and init cursors
+      let v = handlers.reduce((p, c) => {
+        const cursor = lease.cursors[c.name]
+        if (typeof cursor === 'undefined') {
+          lease.cursors[c.name] = -1
+          return -1
+        }
+        return (p < 0 || cursor < p) ? cursor : p
+      }, -1) + 1
+
+      // load events
+      const eventsRef = this._db_.collection(path.concat('/events'))
+      const query = await eventsRef.where('_s', '>=', v).limit(limit).get()
+      query.forEach(doc => {
+        const event = Event.create(doc.data())
+        lease.events.push(event) 
+      })
+      lease.expiresAt = Date.now() + timeout
+
+      // save lease
+      if (lease.events.length) await transaction.set(ref, { _lease_: { token: lease.token, version: lease.version, expiresAt: lease.expiresAt } }, { merge: true })
+
+      return lease
+    })
+  }
+
+  async commitCursors(lease) {
+    if (!lease.events.length) return false
+    return await this._db_.runTransaction(async transaction => {
+      const ref = this._db_.doc(lease.path)
+      const doc = await transaction.get(ref)
+      const data = doc.data() || {}
+
+      // commit when lease matches
+      if (!(data._lease_ && data._lease_.token === lease.token)) Err.concurrency()
+      await transaction.set(ref, { _cursors_: lease.cursors, _lease_: { token: 0, version: 0, expiresAt: 0 } }, { merge: true })
+      return lease.handlers.filter(h => lease.cursors[h.name] < lease.version).length > 0
     })
   }
 }

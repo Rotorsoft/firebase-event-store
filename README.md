@@ -62,7 +62,7 @@ service cloud.firestore {
 A trivial aggregate and event handler:
 
 ```javascript
-const { setup, Aggregate, IEventHandler, Err, FirestoreEventStream } = require('@rotorsoft/firebase-event-store')
+const { setup, Aggregate, IEventHandler, Err } = require('@rotorsoft/firebase-event-store')
 
 const EVENTS = {
   NumbersAdded: 'NumbersAdded',
@@ -136,8 +136,7 @@ let actor = { id: 'user1', name: 'actor 1', tenant: 'tenant1', roles: ['manager'
 let calc = await bus.command(actor, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })
 calc = await bus.command(actor, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
 calc = await bus.command(actor, 'SubtractNumbers', { aggregateId: 'calc1', number1: 1, number2: 1 })
-const stream = new FirestoreEventStream(firestore, 'tenant1', 'main')
-stream.poll([new EventCounter(docStore)])
+await bus.poll('tenant1', 'main', [new EventCounter(docStore)])
 console.log('calculator', calc)
 ```
 
@@ -243,19 +242,20 @@ class ConsoleTracer extends ITracer {
     this.stats = {}
   }
 
-  trace (fn) { 
-    const { level = 0, stat = null, aggregateType = 'aggregateType', event = 'event', ...args } = fn()
-    if (stat) {
-      const s = this.stats[stat] || {}
-      const t = s[aggregateType.name] || {}
-      const e = t[event._c + '-' + event._e] || {} 
-      e.time = e.time || Date.now()
-      e.count = (e.count || 0) + 1
-      t[event._c + '-' + event._e] = e
-      s[aggregateType.name] = t
-      this.stats[stat] = s
-    } else {
-      console.log('TRACE: '.concat(JSON.stringify(args)))
+  trace (fn) {
+    const { method, context, events, ...args } = fn()
+    if (method && events) {
+      for (let event of events) {
+        const key = event.commandName + '-' + event.eventName
+        const s = this.stats[method] || {}
+        const t = s[context.aggregateType.name] || {}
+        const e = t[key] || {} 
+        e.time = e.time || Date.now()
+        e.count = (e.count || 0) + 1
+        t[key] = e
+        s[context.aggregateType.name] = t
+        this.stats[method] = s
+      }
     }
   }
 }

@@ -57,7 +57,6 @@ class EventCounter extends IEventHandler {
     let doc = snap.data() || {}
     doc.eventCount = (doc.eventCount || 0) + 1
     await this.db.doc(path).set(doc)
-    if (this.name) console.log(`${this.name} handled event ${tenant}-${event.streamVersion} and count is ${doc.eventCount}`)
   }
 
   get events () {

@@ -66,3 +66,7 @@
 * Removed padding of aggregate versions inside events
 * Changed code for stream version from _version_ to _s in events
 
+3.0.6
+* Integrated event stream polling functionality back into bus
+* Event store with stream polling support
+* Command context used when executing commands, passed as argument to store methods, and returned when command completes ok
