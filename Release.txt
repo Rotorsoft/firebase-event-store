@@ -70,3 +70,6 @@
 * Integrated event stream polling functionality back into bus
 * Event store with stream polling support
 * Command context used when executing commands, passed as argument to store methods, and returned when command completes ok
+
+3.0.7
+* Changed event name in factory method

@@ -84,7 +84,7 @@ module.exports = class Aggregate {
    * @param {Object} payload event payload
    */
   addEvent (name, payload) {
-    const event = Event.create({ name, ...payload })
+    const event = Event.create({ _event_name_: name, ...payload })
     this.events[event.eventName](event)
     this._uncommitted_events_.push(event)
   }

@@ -7,14 +7,14 @@ module.exports = class Event {
   /**
    * Event factory method
    * 
-   * @param {String} name Event name
+   * @param {String} _event_name_ Event name
    * @param {Object} payload Event payload
    * @returns {Event} frozen instance of Event
    */
-  static create ({ name = '', ...payload } = {}) {
+  static create ({ _event_name_ = '', ...payload } = {}) {
     const event = new Event()
     Object.assign(event, payload)
-    if (name) event._e = name
+    if (_event_name_) event._e = _event_name_
     return Object.freeze(event)
   }
 
