@@ -1,7 +1,7 @@
 'use strict'
 
 const { setup, firebase } = require('../setup')
-const { Calculator, EventCounter } = require('./model')
+const { Calculator, Calculator2, EventCounter } = require('./model')
 
 let bus, firestore, stream, handlers
 
@@ -75,9 +75,9 @@ describe('Basic', () => {
   })
 })
 
-describe('Basic without Snapshooter', () => {
+describe('Basic without snapshots', () => {
   before (async () => {
-    bus = setup([Calculator], false, null, 0)
+    bus = setup([Calculator2], null, 0)
     firestore = firebase.firestore()
     handlers = [new EventCounter(firestore)]
   })

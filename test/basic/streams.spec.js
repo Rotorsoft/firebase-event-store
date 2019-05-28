@@ -24,7 +24,7 @@ class ConsoleTracer extends ITracer {
 
 describe('Streams', () => {
   before (async () => {
-    bus = setup([Calculator], true, new ConsoleTracer())
+    bus = setup([Calculator], new ConsoleTracer())
     firestore = firebase.firestore()
     firestore.children = []
     handlers = [new EventCounter(firestore, 'counter11')]

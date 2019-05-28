@@ -6,8 +6,8 @@ const Aggregate = require('../Aggregate')
 const Event = require('../Event')
 const Err = require('../Err')
 
-function aggregatesPath (tenant, aggregateType) {
-  return '/tenants/'.concat(tenant, aggregateType.path)
+function snapshotPath (tenant, path) {
+  return '/tenants/'.concat(tenant, path || '/snapshots')
 }
 
 function streamPath (tenant, stream) {
@@ -28,22 +28,21 @@ class Padder {
 }
 
 module.exports = class FirestoreEventStore extends IEventStore {
-  constructor (db, snapshots = true, tracer = null) {
+  constructor (db, tracer = null) {
     super()
     this._db_ = db
-    this._snapshots_ = snapshots || false
     this._tracer_ = tracer || new ITracer()
   }
 
   async loadAggregate (context) {
     const { actor, aggregateType, aggregateId, expectedVersion } = context
-    const collRef = this._db_.collection(aggregatesPath(actor.tenant, aggregateType))
+    const collRef = this._db_.collection(snapshotPath(actor.tenant, aggregateType.path))
     if (aggregateId) {
-      const doc = this._snapshots_ ? await collRef.doc(aggregateId).get() : null
+      const doc = aggregateType.path ? await collRef.doc(aggregateId).get() : null
       const aggregate = Aggregate.create(aggregateType, doc && doc.exists ? doc.data() : { _aggregate_id_: aggregateId, _aggregate_version_: -1 })
       
       // load events that ocurred after snapshot was taken
-      if (expectedVersion == -1 || aggregate.aggregateVersion < expectedVersion) {
+      if (expectedVersion === -1 || aggregate.aggregateVersion < expectedVersion) {
         const eventsRef = this._db_.collection(streamPath(actor.tenant, aggregateType.stream).concat('/events'))
         const events = await eventsRef.where('_t', '==', aggregateType.name).where('_a', '==', aggregate.aggregateId).where('_v', '>=', aggregate.aggregateVersion + 1).get()
         events.forEach(doc => {
@@ -64,7 +63,6 @@ module.exports = class FirestoreEventStore extends IEventStore {
     if (aggregate.aggregateVersion !== expectedVersion) throw Err.concurrency()
 
     const eventsVersionPadder = new Padder()
-    const aggregateRef = this._db_.collection(aggregatesPath(actor.tenant, aggregateType)).doc(aggregate.aggregateId)
     const streamRef = this._db_.doc(streamPath(actor.tenant, aggregateType.stream))
     const eventsRef = streamRef.collection('events')
     
@@ -88,7 +86,11 @@ module.exports = class FirestoreEventStore extends IEventStore {
       }
       await transaction.set(streamRef, { _version_: version }, { merge: true })
       aggregate._aggregate_version_ = expectedVersion
-      if (this._snapshots_) await transaction.set(aggregateRef, aggregate.clone())
+
+      if (aggregateType.path) {
+        const aggregateRef = this._db_.collection(snapshotPath(actor.tenant, aggregateType.path)).doc(aggregate.aggregateId)
+        await transaction.set(aggregateRef, aggregate.clone())
+      }
       return events
     })
   }

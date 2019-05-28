@@ -35,7 +35,7 @@ const tracer = new ConsoleTracer()
 
 describe('Calculator basic operations', () => {
   before (() => {
-    bus = setup([Calculator], false, tracer)
+    bus = setup([Calculator], tracer)
   })
 
   async function c (calc, command, payload) {

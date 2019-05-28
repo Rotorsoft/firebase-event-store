@@ -73,3 +73,6 @@
 
 3.0.7
 * Changed event name in factory method
+
+3.0.8
+* Snapshots flag removed. Saving aggregate snapshots only when path is provided, otherwise load from events

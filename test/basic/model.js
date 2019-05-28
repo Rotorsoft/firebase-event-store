@@ -42,6 +42,10 @@ class Calculator extends Aggregate {
   }
 }
 
+class Calculator2 extends Calculator {
+  static get path () { return '' }
+}
+
 class EventCounter extends IEventHandler {
   constructor(db, name) {
     super()
@@ -70,5 +74,6 @@ class EventCounter extends IEventHandler {
 
 module.exports = {
   Calculator,
+  Calculator2,
   EventCounter
 }

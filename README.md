@@ -264,7 +264,7 @@ const tracer = new ConsoleTracer()
 
 describe('Calculator basic operations', () => {
   before (() => {
-    bus = setup([Calculator], false, tracer) // SEE FULL CHAI AND FIREBASE-MOCK SETUP IN TEST FOLDER
+    bus = setup([Calculator], tracer) // SEE FULL CHAI AND FIREBASE-MOCK SETUP IN TEST FOLDER
   })
 
   async function c (calc, command, payload) {

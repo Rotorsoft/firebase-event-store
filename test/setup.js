@@ -55,9 +55,9 @@ MockFirestoreQuery.prototype.where = function (property, operator, value) {
 }
 
 module.exports = {
-  setup: (aggregates, snapshots = true, tracer = null, CACHE_SIZE = 10) => {
+  setup: (aggregates, tracer = null, CACHE_SIZE = 10) => {
     mocksdk.apps = []
-    return setup(mocksdk, aggregates, { snapshots, tracer, CACHE_SIZE })
+    return setup(mocksdk, aggregates, { tracer, CACHE_SIZE })
   },
   firebase: mocksdk,
   ITracer

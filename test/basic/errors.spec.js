@@ -217,15 +217,4 @@ describe('Err handling 2', () => {
       error.method.should.be.equal('commands')
     }
   })
-
-  it('should throw not implemented path', async () => {
-    try {
-      const bus = storeSetup(firebase, [InvalidAggregate2])
-      await bus.command(actor1, 'InvalidCommand', {})
-    }
-    catch(error) {
-      error.name.should.be.equal('NotImplementedError')
-      error.method.should.be.equal('path')
-    }
-  })
 })
