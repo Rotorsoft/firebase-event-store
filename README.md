@@ -62,7 +62,7 @@ service cloud.firestore {
 A trivial aggregate and event handler:
 
 ```javascript
-const { setup, Aggregate, IEventHandler, Err } = require('@rotorsoft/firebase-event-store')
+const { getFirestoreCommandHandler, getFirestoreStreamReader, Aggregate, IEventHandler, Err } = require('@rotorsoft/firebase-event-store')
 
 const EVENTS = {
   NumbersAdded: 'NumbersAdded',
@@ -130,13 +130,14 @@ class EventCounter extends IEventHandler {
   }
 }
 
-const firebase = //TODO get firebase ref
-const bus = setup(firebase, [Calculator])
+const firestore = //TODO get firestore ref
+const ch = getFirestoreCommandHandler(firestore, [Calculator])
+const sr = getFirestoreStreamReader(firestore, 'tenant1', 'main', [new EventCounter(docStore)])
 let actor = { id: 'user1', name: 'actor 1', tenant: 'tenant1', roles: ['manager', 'user'] }
-let calc = await bus.command(actor, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })
-calc = await bus.command(actor, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
-calc = await bus.command(actor, 'SubtractNumbers', { aggregateId: 'calc1', number1: 1, number2: 1 })
-await bus.poll('tenant1', 'main', [new EventCounter(docStore)])
+let calc = await ch.command(actor, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc1' })
+calc = await ch.command(actor, 'AddNumbers', { number1: 3, number2: 4, aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion })
+calc = await ch.command(actor, 'SubtractNumbers', { aggregateId: 'calc1', number1: 1, number2: 1 })
+await sr.poll()
 console.log('calculator', calc)
 ```
 
@@ -264,16 +265,16 @@ const tracer = new ConsoleTracer()
 
 describe('Calculator basic operations', () => {
   before (() => {
-    bus = setup([Calculator], tracer) // SEE FULL CHAI AND FIREBASE-MOCK SETUP IN TEST FOLDER
+    ch = getFirestoreCommandHandler(firestore, [Calculator], { tracer }) // SEE FULL CHAI AND FIREBASE-MOCK SETUP IN TEST FOLDER
   })
 
   async function c (calc, command, payload) {
-    return await bus.command(actor1, command, Object.assign(payload, { aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion }))
+    return await ch.command(actor1, command, Object.assign(payload, { aggregateId: calc.aggregateId, expectedVersion: calc.aggregateVersion }))
   }
 
   it('should compute 1+2-3*5=0', async () => {
     let calc
-    calc = await bus.command(actor1, 'PressDigit', { digit: '1', aggregateId: 'c1' })
+    calc = await ch.command(actor1, 'PressDigit', { digit: '1', aggregateId: 'c1' })
     calc = await c(calc, 'PressOperator', { operator: '+' })
     calc = await c(calc, 'PressDigit', { digit: '2'})
     calc = await c(calc, 'PressOperator', { operator: '-' })
@@ -287,7 +288,7 @@ describe('Calculator basic operations', () => {
 
   it('should compute 4*4+21-16*3=63', async () => {
     let calc
-    calc = await bus.command(actor1, 'PressDigit', { digit: '4', aggregateId: 'c2' })
+    calc = await ch.command(actor1, 'PressDigit', { digit: '4', aggregateId: 'c2' })
     calc = await c(calc, 'PressOperator', { operator: '*' })
     calc = await c(calc, 'PressDigit', { digit: '4' })
     calc = await c(calc, 'PressOperator', { operator: '+' })
@@ -305,7 +306,7 @@ describe('Calculator basic operations', () => {
 
   it('should compute 4*4+21-16*3===567', async () => {
     let calc
-    calc = await bus.command(actor1, 'PressDigit', { digit: '4', aggregateId: 'c3' })
+    calc = await ch.command(actor1, 'PressDigit', { digit: '4', aggregateId: 'c3' })
     calc = await c(calc, 'PressOperator', { operator: '*' })
     calc = await c(calc, 'PressDigit', { digit: '4' })
     calc = await c(calc, 'PressOperator', { operator: '+' })
@@ -325,7 +326,7 @@ describe('Calculator basic operations', () => {
 
   it('should compute 1.5+2.0-11.22+.33=-7.39', async () => {
     let calc
-    calc = await bus.command(actor1, 'PressDigit', { digit: '1', aggregateId: 'c4' })
+    calc = await ch.command(actor1, 'PressDigit', { digit: '1', aggregateId: 'c4' })
     calc = await c(calc, 'PressDot', {})
     calc = await c(calc, 'PressDigit', { digit: '5'})    
     calc = await c(calc, 'PressOperator', { operator: '+' })
@@ -349,7 +350,7 @@ describe('Calculator basic operations', () => {
 
   it('should compute 5.23/.33*2=31.6969696969697', async () => {
     let calc
-    calc = await bus.command(actor1, 'PressDigit', { digit: '5', aggregateId: 'c5' })
+    calc = await ch.command(actor1, 'PressDigit', { digit: '5', aggregateId: 'c5' })
     calc = await c(calc, 'PressDot', {})
     calc = await c(calc, 'PressDigit', { digit: '2'})
     calc = await c(calc, 'PressDigit', { digit: '3'})   

@@ -76,3 +76,6 @@
 
 3.0.8
 * Snapshots flag removed. Saving aggregate snapshots only when path is provided, otherwise load from events
+
+3.1.0
+* Replaced bus with CommandHandler and StreamReader. Bus should be provided by the infrastructure

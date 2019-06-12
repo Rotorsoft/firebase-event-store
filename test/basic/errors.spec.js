@@ -1,21 +1,19 @@
 'use strict'
 
 const Aggregate = require('../../src/Aggregate')
+const CommandHandler = require('../../src/CommandHandler')
 const FirestoreEventStore = require('../../src/firestore/FirestoreEventStore')
-const Bus = require('../../src/Bus')
 const { Calculator } = require('./model')
 const { InvalidAggregate, InvalidAggregate2, InvalidHandler } = require('./invalid')
-const { setup, firebase } = require('../setup')
-const storeSetup = require('../../index').setup
+const { getFirestoreCommandHandler, firestore } = require('../setup')
 const actor1 = { id: 'user1', name: 'user1', tenant: 'tenant1', roles: [] }
 
-const bus = setup([Calculator])
-const firestore = firebase.firestore()
+const ch = getFirestoreCommandHandler(firestore, [Calculator])
 
 describe('Err handling', () => {
   it('should throw missing arguments actor', async () => {
     try {
-      await bus.command(null, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      await ch.command(null, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.name.should.be.equal('MissingArgumentError')
@@ -25,7 +23,7 @@ describe('Err handling', () => {
 
   it('should throw missing arguments actor.id', async () => {
     try {
-      await bus.command({ name: 'user1', tenant: 'tenant1', roles: [] }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      await ch.command({ name: 'user1', tenant: 'tenant1', roles: [] }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.name.should.be.equal('MissingArgumentError')
@@ -35,7 +33,7 @@ describe('Err handling', () => {
 
   it('should throw missing arguments actor.name', async () => {
     try {
-      await bus.command({ id: 'user1', tenant: 'tenant1', roles: [] }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      await ch.command({ id: 'user1', tenant: 'tenant1', roles: [] }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.name.should.be.equal('MissingArgumentError')
@@ -45,7 +43,7 @@ describe('Err handling', () => {
 
   it('should throw missing arguments actor.tenant', async () => {
     try {
-      await bus.command({ id: 'user1', name: 'user1', roles: [] }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      await ch.command({ id: 'user1', name: 'user1', roles: [] }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.name.should.be.equal('MissingArgumentError')
@@ -55,7 +53,7 @@ describe('Err handling', () => {
 
   it('should throw missing arguments actor.roles', async () => {
     try {
-      await bus.command({ id: 'user1', name: 'user1', tenant: 'tenant1' }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      await ch.command({ id: 'user1', name: 'user1', tenant: 'tenant1' }, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.name.should.be.equal('MissingArgumentError')
@@ -65,7 +63,7 @@ describe('Err handling', () => {
 
   it('should throw missing arguments command', async () => {
     try {
-      await bus.command(actor1, '', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      await ch.command(actor1, '', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.name.should.be.equal('MissingArgumentError')
@@ -75,7 +73,7 @@ describe('Err handling', () => {
 
   it('should throw invalid arguments command', async () => {
     try {
-      await bus.command(actor1, 'abc', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      await ch.command(actor1, 'abc', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.name.should.be.equal('InvalidArgumentError')
@@ -85,7 +83,7 @@ describe('Err handling', () => {
 
   it('should throw missing arguments aggregateId', async () => {
     try {
-      await bus.command(actor1, 'abc', { number1: 1, number2: 2, expectedVersion: 1 })
+      await ch.command(actor1, 'abc', { number1: 1, number2: 2, expectedVersion: 1 })
     }
     catch(error) {
       error.name.should.be.equal('MissingArgumentError')
@@ -95,7 +93,7 @@ describe('Err handling', () => {
 
   it('should throw invalid arguments number1', async () => {
     try {
-      await bus.command(actor1, 'AddNumbers')
+      await ch.command(actor1, 'AddNumbers')
     }
     catch(error) {
       error.name.should.be.equal('InvalidArgumentError')
@@ -109,7 +107,7 @@ describe('Not implemented', () => {
     const m = FirestoreEventStore.prototype.loadAggregate
     try {
       delete FirestoreEventStore.prototype.loadAggregate
-      await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      await ch.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.name.should.be.equal('NotImplementedError')
@@ -122,7 +120,7 @@ describe('Not implemented', () => {
     const m = FirestoreEventStore.prototype.commitEvents
     try {
       delete FirestoreEventStore.prototype.commitEvents
-      await bus.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
+      await ch.command(actor1, 'AddNumbers', { number1: 1, number2: 2, aggregateId: 'calc22' })
     }
     catch(error) {
       error.name.should.be.equal('NotImplementedError')
@@ -135,7 +133,7 @@ describe('Not implemented', () => {
 describe('Err handling 2', () => {  
   it('should throw invalid arguments: store', async () => {
     try {
-      let bus2 = new Bus(new Object(), [])
+      let ch2 = new CommandHandler(new Object(), [])
     }
     catch(error) {
       error.name.should.equal('InvalidArgumentError')
@@ -145,8 +143,8 @@ describe('Err handling 2', () => {
 
   it('should throw not implemented commands', async () => {
     try {
-      const bus = storeSetup(firebase, [InvalidAggregate])
-      await bus.command(actor1, 'InvalidCommand', { number1: 1, number2: 2 })
+      const ch = getFirestoreCommandHandler(firestore, [InvalidAggregate])
+      await ch.command(actor1, 'InvalidCommand', { number1: 1, number2: 2 })
     }
     catch(error) { 
       error.name.should.be.equal('NotImplementedError')
@@ -156,9 +154,9 @@ describe('Err handling 2', () => {
 
   it('should throw not implemented events', async () => {
     try {
-      const bus = storeSetup(firebase, [InvalidAggregate])
+      const ch = getFirestoreCommandHandler(firestore, [InvalidAggregate])
       InvalidAggregate.prototype.handleCommand = Calculator.prototype.handleCommand
-      await bus.command(actor1, 'InvalidCommand', { number1: 1, number2: 2 })
+      await ch.command(actor1, 'InvalidCommand', { number1: 1, number2: 2 })
     }
     catch(error) { 
       error.name.should.be.equal('NotImplementedError')
@@ -168,7 +166,7 @@ describe('Err handling 2', () => {
 
   it('should throw invalid arguments aggregateType', async () => {
     try {
-      const bus = storeSetup(firebase, [InvalidCommand])
+      const ch = getFirestoreCommandHandler(firestore, [InvalidCommand])
     }
     catch(error) {
       error.message.should.be.equal('InvalidCommand is not defined')
@@ -177,8 +175,8 @@ describe('Err handling 2', () => {
 
   it('should throw precondition error', async () => {
     try {
-      const bus = storeSetup(firebase, [InvalidAggregate])
-      await bus.command(actor1, 'InvalidCommand3', { a: 1, b: 3 })
+      const ch = getFirestoreCommandHandler(firestore, [InvalidAggregate])
+      await ch.command(actor1, 'InvalidCommand3', { a: 1, b: 3 })
     }
     catch(error) {
       error.name.should.equal('PreconditionError')
@@ -193,8 +191,8 @@ describe('Err handling 2', () => {
         static get path () { return '/invalids' }
         get commands () { return { C: async () => { this.addEvent('a', 'E', {}) } } }
       }
-      const bus = storeSetup(firebase, [A])
-      await bus.command(actor1, 'C')
+      const ch = getFirestoreCommandHandler(firestore, [A])
+      await ch.command(actor1, 'C')
     }
     catch(error) {
       error.name.should.be.equal('NotImplementedError')
@@ -209,8 +207,8 @@ describe('Err handling 2', () => {
         static get path () { return '/invalids' }
         get events () { return { E: () => {} } }
       }
-      const bus = storeSetup(firebase, [A])
-      await bus.command(actor1, 'C')
+      const ch = getFirestoreCommandHandler(firestore, [A])
+      await ch.command(actor1, 'C')
     }
     catch(error) {
       error.name.should.be.equal('NotImplementedError')

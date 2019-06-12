@@ -1,4 +1,4 @@
-const { setup, ITracer } = require('../index')
+const { getFirestore, getFirestoreCommandHandler, getFirestoreStreamReader, ITracer } = require('../index')
 const chai = require('chai')
 const _ = require('lodash')
 
@@ -54,11 +54,11 @@ MockFirestoreQuery.prototype.where = function (property, operator, value) {
   }
 }
 
+mocksdk.apps = []
+
 module.exports = {
-  setup: (aggregates, tracer = null, CACHE_SIZE = 10) => {
-    mocksdk.apps = []
-    return setup(mocksdk, aggregates, { tracer, CACHE_SIZE })
-  },
-  firebase: mocksdk,
+  getFirestoreCommandHandler,
+  getFirestoreStreamReader,
+  firestore: getFirestore(mocksdk),
   ITracer
 }
