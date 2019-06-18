@@ -18,7 +18,7 @@ class ConsoleTracer extends ITracer {
       console.log(`!!! ERROR: ${error}`)
     }
     if (context) console.log(`  ${method}: ${JSON.stringify(context)}`)
-    if (handler) console.log(`  ${handler}: handled ${JSON.stringify(event)} on tenant ${tenant} - stream ${stream}`)
+    if (handler) console.log(`  ${handler}: handled event ${event.eventName}.v${event.eventVersion}, actor ${event.actorId}, aggregate ${event.aggregateId}.v${event.aggregateVersion}, on tenant ${tenant} - stream ${stream}`)
   }
 }
 

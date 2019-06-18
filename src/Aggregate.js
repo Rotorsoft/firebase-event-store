@@ -83,9 +83,10 @@ module.exports = class Aggregate {
    * Event factory method used by command handlers
    * @param {String} name event name
    * @param {Object} payload event payload
+   * @param {Integer} version optional event version
    */
-  addEvent (name, payload) {
-    const event = Event.create({ _event_name_: name, ...payload })
+  addEvent (name, payload, version = 0) {
+    const event = Event.create({ _event_name_: name, _event_version_: version, ...payload })
     this.events[event.eventName](event)
     this._uncommitted_events_.push(event)
   }

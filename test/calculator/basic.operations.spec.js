@@ -19,12 +19,12 @@ class ConsoleTracer extends ITracer {
       for (let event of events) {
         const key = event.commandName + '-' + event.eventName
         const s = this.stats[method] || {}
-        const t = s[context.aggregateType.name] || {}
+        const t = s[event.aggregateTypeName] || {}
         const e = t[key] || {} 
         e.time = e.time || Date.now()
         e.count = (e.count || 0) + 1
         t[key] = e
-        s[context.aggregateType.name] = t
+        s[event.aggregateTypeName] = t
         this.stats[method] = s
       }
     }
