@@ -1,6 +1,6 @@
 {
   "name": "@rotorsoft/firebase-event-store",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "Simple multi-tenant event sourcing store based on firestore",
   "main": "index.js",
   "scripts": {
