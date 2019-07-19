@@ -18,7 +18,7 @@ So far the results have been positive. The store supports multiple tenants as we
 
 ##### firestore.rules
 
-````json 
+````js
 service cloud.firestore {
   match /databases/{database}/documents {
     
