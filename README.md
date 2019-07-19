@@ -1,5 +1,8 @@
-firebase-event-store [![Build Status](https://travis-ci.org/Rotorsoft/firebase-event-store.svg?branch=master)](https://travis-ci.org/Rotorsoft/firebase-event-store) [![Coverage Status](https://coveralls.io/repos/github/Rotorsoft/firebase-event-store/badge.svg?branch=master)](https://coveralls.io/github/Rotorsoft/firebase-event-store?branch=master)
+firebase-event-store
 =========
+[![NPM Version](https://img.shields.io/npm/v/@rotorsoft/firebase-event-store.svg)](https://www.npmjs.com/package/@rotorsoft/firebase-event-store)
+[![Build Status](https://travis-ci.org/Rotorsoft/firebase-event-store.svg?branch=master)](https://travis-ci.org/Rotorsoft/firebase-event-store)
+[![Coverage Status](https://coveralls.io/repos/github/Rotorsoft/firebase-event-store/badge.svg?branch=master)](https://coveralls.io/github/Rotorsoft/firebase-event-store?branch=master)
 
 I started this project as a proof of concept, trying to figure out if a low cost cloud based platform could support a couple of mobile applications I developed this year.
 
@@ -15,7 +18,7 @@ So far the results have been positive. The store supports multiple tenants as we
 
 ##### firestore.rules
 
-````json 
+````js
 service cloud.firestore {
   match /databases/{database}/documents {
     
