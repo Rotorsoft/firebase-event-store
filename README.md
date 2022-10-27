@@ -4,6 +4,10 @@ firebase-event-store
 [![Build Status](https://travis-ci.org/Rotorsoft/firebase-event-store.svg?branch=master)](https://travis-ci.org/Rotorsoft/firebase-event-store)
 [![Coverage Status](https://coveralls.io/repos/github/Rotorsoft/firebase-event-store/badge.svg?branch=master)](https://coveralls.io/github/Rotorsoft/firebase-event-store?branch=master)
 
+
+> 🚨🚨🚨 This was just an experiment, please use it at your own risk. 
+I've been more active developing a similar framework in TypeScript called [Eventually](https://github.com/Rotorsoft/eventually-monorepo) that is actually used in a real production system. 
+
 I started this project as a proof of concept, trying to figure out if a low cost cloud based platform could support a couple of mobile applications I developed this year.
 
 [Cloud Firestore](https://firebase.google.com/docs/firestore/) is an inexpensive Non-SQL cloud database to store and sync data for mobile, web, and server development. Since most of my web applications are following the [CQRS](http://codebetter.com/gregyoung/2012/09/09/cqrs-is-not-an-architecture-2/) pattern proposed by Greg Young around 2010 (Figure 1), I was curious about using Firestore Documents and Collections to model my Event Streams, Aggregate Snapshots, and Projections. After some tinkering with the APIs, and a few beers, the Command Side started to emerge. 
